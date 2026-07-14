@@ -1,0 +1,180 @@
+﻿@model BulkMessaging.Models.MessageDetailsViewModel
+@{
+    ViewData["Title"] = "Message";
+    var campaign = Model.Campaign;
+    var message = Model.Message;
+    var isEmail = campaign.Type == BulkMessaging.Models.CampaignType.Email;
+    var encodedName = Uri.EscapeDataString(campaign.Name);
+    var hasResults = message.SendResults.Count > 0;
+}
+
+<div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="mb-6">
+        <a href="/Campaigns/@encodedName/Index" class="campaign-back">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+            </svg>
+            @campaign.Name
+        </a>
+
+        <div class="flex items-center gap-2 mt-3">
+            <h1 class="text-2xl font-bold text-gray-900" style="font-family: 'Space Grotesk', sans-serif;">
+                @(isEmail ? message.Subject : "SMS message")
+            </h1>
+            <span class="message-status message-status--@message.Status.ToString().ToLower()">@message.Status</span>
+        </div>
+
+        <p class="text-gray-500 mt-1 text-sm">
+            @if (message.Status == BulkMessaging.Models.MessageStatus.Scheduled)
+            {
+                <text>Scheduled for @message.ScheduledAt?.ToString("MMM d, yyyy h:mm tt")</text>
+            }
+            else if (message.Status == BulkMessaging.Models.MessageStatus.Sending)
+            {
+                <text>Sending now…</text>
+            }
+            else if (message.Status == BulkMessaging.Models.MessageStatus.Sent)
+            {
+                <text>Sent @message.SentAt?.ToLocalTime().ToString("MMM d, yyyy h:mm tt")</text>
+            }
+            else if (message.Status == BulkMessaging.Models.MessageStatus.Canceled)
+            {
+                <text>Canceled @message.UpdatedAt.ToLocalTime().ToString("MMM d, yyyy h:mm tt")</text>
+            }
+            else
+            {
+                <text>Created @message.CreatedAt.ToLocalTime().ToString("MMM d, yyyy h:mm tt")</text>
+            }
+            · to @campaign.Contacts.Count contact@(campaign.Contacts.Count == 1 ? "" : "s")
+        </p>
+
+        @if (hasResults)
+        {
+            <div class="mt-3">
+                <a href="/Campaigns/@encodedName/Index/message/@message.Id/sending-results" class="campaign-btn campaign-btn--primary">
+                    View sending results
+                </a>
+            </div>
+        }
+    </div>
+
+    @if (isEmail)
+    {
+        <div class="meta-card">
+            <div class="meta-row">
+                <span class="meta-label">Subject</span>
+                <span class="meta-value">@message.Subject</span>
+            </div>
+            @if (!string.IsNullOrWhiteSpace(message.Cc))
+            {
+                <div class="meta-row">
+                    <span class="meta-label">CC</span>
+                    <span class="meta-value">@message.Cc</span>
+                </div>
+            }
+            @if (!string.IsNullOrWhiteSpace(message.Bcc))
+            {
+                <div class="meta-row">
+                    <span class="meta-label">BCC</span>
+                    <span class="meta-value">@message.Bcc</span>
+                </div>
+            }
+        </div>
+
+        <div class="email-preview-wrap">
+            <div class="email-preview-toolbar">
+                <span class="email-preview-dot" style="background:#F87171;"></span>
+                <span class="email-preview-dot" style="background:#FBBF24;"></span>
+                <span class="email-preview-dot" style="background:#34D399;"></span>
+                <span class="email-preview-title">Preview</span>
+            </div>
+            <div class="email-preview-body">
+                @Html.Raw(message.HtmlBody)
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="sms-preview-wrap">
+            <div class="sms-bubble">@message.SmsBody</div>
+        </div>
+    }
+
+    <div class="mt-6">
+        <a href="/Campaigns/@encodedName/Index" class="campaign-btn campaign-btn--ghost">Back to messages</a>
+    </div>
+</div>
+
+<style>
+    .campaign-back {
+        display: inline-flex; align-items: center; gap: 6px;
+        font-size: 13px; font-weight: 500; color: #6B7280; text-decoration: none;
+        transition: color .15s ease;
+    }
+    .campaign-back:hover { color: #4338CA; }
+
+    .campaign-btn {
+        padding: 9px 18px; border-radius: 8px; font-size: 14px; font-weight: 600;
+        text-decoration: none; cursor: pointer; border: none; transition: background .15s ease;
+        display: inline-block;
+    }
+    .campaign-btn--ghost { background: transparent; color: #374151; border: 1px solid #E5E7EB; }
+    .campaign-btn--ghost:hover { background: #F9FAFB; }
+    .campaign-btn--primary { background: #4338CA; color: #fff; }
+    .campaign-btn--primary:hover { background: #6D28D9; }
+
+    .message-status {
+        font-size: 10px; font-weight: 700; text-transform: uppercase;
+        letter-spacing: .3px; padding: 3px 8px; border-radius: 999px; flex-shrink: 0;
+    }
+    .message-status--draft { background: #F3F4F6; color: #6B7280; }
+    .message-status--scheduled { background: #FEF3C7; color: #B45309; }
+    .message-status--sending { background: #FEF3C7; color: #B45309; }
+    .message-status--sent { background: #ECFDF5; color: #059669; }
+    .message-status--canceled { background: #F3F4F6; color: #6B7280; }
+
+    .meta-card {
+        background: #fff; border: 1px solid #E5E7EB; border-radius: 12px;
+        padding: 14px 16px; margin-bottom: 16px;
+    }
+    .meta-row {
+        display: flex; gap: 10px; padding: 6px 0;
+        border-bottom: 1px solid #F3F4F6; font-size: 13px;
+    }
+    .meta-row:last-child { border-bottom: none; }
+    .meta-label {
+        flex-shrink: 0; width: 70px; color: #9CA3AF; font-weight: 600;
+        text-transform: uppercase; font-size: 11px; letter-spacing: .3px; padding-top: 1px;
+    }
+    .meta-value { color: #111827; word-break: break-word; }
+
+    .email-preview-wrap {
+        background: #fff; border: 1px solid #E5E7EB; border-radius: 12px; overflow: hidden;
+    }
+    .email-preview-toolbar {
+        display: flex; align-items: center; gap: 6px;
+        padding: 10px 14px; border-bottom: 1px solid #E5E7EB; background: #F9FAFB;
+    }
+    .email-preview-dot { width: 9px; height: 9px; border-radius: 50%; }
+    .email-preview-title {
+        margin-left: 6px; font-size: 11px; font-weight: 600; color: #9CA3AF;
+        text-transform: uppercase; letter-spacing: .3px;
+    }
+    .email-preview-body {
+        padding: 24px; font-size: 14px; color: #111827; line-height: 1.6;
+        max-width: 640px; margin: 0 auto;
+    }
+    .email-preview-body img { max-width: 100%; height: auto; display: block; }
+    .email-preview-body table { border-collapse: collapse; width: 100%; }
+    .email-preview-body td { padding: 8px 10px; }
+    .email-preview-body a { color: #4338CA; }
+
+    .sms-preview-wrap {
+        background: #fff; border: 1px solid #E5E7EB; border-radius: 12px;
+        padding: 24px; display: flex; justify-content: flex-start;
+    }
+    .sms-bubble {
+        background: #4338CA; color: #fff; padding: 12px 16px; border-radius: 16px 16px 16px 4px;
+        font-size: 14px; line-height: 1.5; max-width: 420px; white-space: pre-wrap; word-break: break-word;
+    }
+</style>

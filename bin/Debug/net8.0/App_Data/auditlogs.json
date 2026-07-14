@@ -1,0 +1,155 @@
+[
+  {
+    "id": "4d6f6e14-bfe3-4723-8431-5131822928e2",
+    "timestamp": "2026-07-10T04:53:31.1394034Z",
+    "username": "admin",
+    "role": "SuperAdmin",
+    "action": "System Initialization",
+    "details": "Default super admin account created",
+    "ipAddress": null
+  },
+  {
+    "id": "c4714e6a-f967-4fee-a8ae-5514277933fb",
+    "timestamp": "2026-07-10T08:30:05.8088054Z",
+    "username": "admin",
+    "role": "SuperAdmin",
+    "action": "Login Success",
+    "details": "User \u0027admin\u0027 logged in",
+    "ipAddress": "::1"
+  },
+  {
+    "id": "ea7d405f-a618-4913-b1c7-db9bd005ada5",
+    "timestamp": "2026-07-12T00:30:06.8548329Z",
+    "username": "admin",
+    "role": "SuperAdmin",
+    "action": "Login Success",
+    "details": "User \u0027admin\u0027 logged in",
+    "ipAddress": "::1"
+  },
+  {
+    "id": "a1700d96-0cbc-4f7f-a0b9-41119d5a6576",
+    "timestamp": "2026-07-12T00:39:03.0768938Z",
+    "username": "admin",
+    "role": "Admin",
+    "action": "User Created",
+    "details": "Created user \u0027chimalongy\u0027 with role \u0027User\u0027",
+    "ipAddress": null
+  },
+  {
+    "id": "8fc7635a-56d6-4736-8035-fcb9e6deed3e",
+    "timestamp": "2026-07-12T00:39:10.6196694Z",
+    "username": "admin",
+    "role": "SuperAdmin",
+    "action": "Logout",
+    "details": "User \u0027admin\u0027 logged out",
+    "ipAddress": "::1"
+  },
+  {
+    "id": "c8c078dc-f29c-4311-a40a-17cc13b73d52",
+    "timestamp": "2026-07-12T00:39:19.852031Z",
+    "username": "chimalongy",
+    "role": "User",
+    "action": "Login Success",
+    "details": "User \u0027chimalongy\u0027 logged in",
+    "ipAddress": "::1"
+  },
+  {
+    "id": "5fea1fd2-7bad-42bf-a701-eb65df9cbad6",
+    "timestamp": "2026-07-12T09:59:15.3287567Z",
+    "username": "chimalongy",
+    "role": "User",
+    "action": "Login Success",
+    "details": "User \u0027chimalongy\u0027 logged in",
+    "ipAddress": "::1"
+  },
+  {
+    "id": "126c2ca7-74fd-422d-b56f-88218cb6327e",
+    "timestamp": "2026-07-12T11:15:46.695169Z",
+    "username": "chimalongy",
+    "role": "User",
+    "action": "Logout",
+    "details": "User \u0027chimalongy\u0027 logged out",
+    "ipAddress": "::1"
+  },
+  {
+    "id": "5ba532f0-a094-4feb-80d2-b04fd39815d2",
+    "timestamp": "2026-07-12T11:15:51.3040235Z",
+    "username": "admin",
+    "role": "SuperAdmin",
+    "action": "Login Success",
+    "details": "User \u0027admin\u0027 logged in",
+    "ipAddress": "::1"
+  },
+  {
+    "id": "d709950f-4dc6-4f4d-9379-e9e82025df4d",
+    "timestamp": "2026-07-12T18:55:51.2777174Z",
+    "username": "admin",
+    "role": "SuperAdmin",
+    "action": "Logout",
+    "details": "User \u0027admin\u0027 logged out",
+    "ipAddress": "::1"
+  },
+  {
+    "id": "0ad0f859-1248-409c-95ef-a1dedded363d",
+    "timestamp": "2026-07-12T18:55:54.4200885Z",
+    "username": "chimalongy",
+    "role": "User",
+    "action": "Login Success",
+    "details": "User \u0027chimalongy\u0027 logged in",
+    "ipAddress": "::1"
+  },
+  {
+    "id": "a0a86ae7-f0ea-4443-a53f-d83cbff5506b",
+    "timestamp": "2026-07-13T07:05:26.1554583Z",
+    "username": "chimalongy",
+    "role": "User",
+    "action": "Login Success",
+    "details": "User \u0027chimalongy\u0027 logged in",
+    "ipAddress": "::1"
+  },
+  {
+    "id": "f810426d-3a9d-43b7-83a7-9c27bcc4ab7c",
+    "timestamp": "2026-07-13T08:14:52.3679599Z",
+    "username": "chimalongy",
+    "role": "User",
+    "action": "Logout",
+    "details": "User \u0027chimalongy\u0027 logged out",
+    "ipAddress": "::1"
+  },
+  {
+    "id": "b15ba7c6-48f4-4d5b-84ae-4e2db3b4a1d1",
+    "timestamp": "2026-07-13T08:14:54.6088712Z",
+    "username": "chimalongy",
+    "role": "User",
+    "action": "Login Success",
+    "details": "User \u0027chimalongy\u0027 logged in",
+    "ipAddress": "::1"
+  },
+  {
+    "id": "141b40d9-9fbc-4b2c-9789-b2d749e7454f",
+    "timestamp": "2026-07-14T08:51:19.6407468Z",
+    "username": "chimalongy",
+    "role": "User",
+    "action": "Login Success",
+    "details": "User \u0027chimalongy\u0027 logged in",
+    "ipAddress": "::1"
+  },
+  {
+    "id": "80bd0dcf-d4ff-4567-818b-7d5d8508437e",
+    "timestamp": "2026-07-14T08:56:10.0217971Z",
+    "username": "chimalongy",
+    "role": "User",
+    "action": "Logout",
+    "details": "User \u0027chimalongy\u0027 logged out",
+    "ipAddress": "::1"
+  },
+  {
+    "id": "b473f9c0-de99-4801-a955-6c12ceef99ef",
+    "timestamp": "2026-07-14T11:23:13.7073052Z",
+    "username": "admin",
+    "role": "SuperAdmin",
+    "action": "Login Success",
+    "details": "User \u0027admin\u0027 logged in",
+    "ipAddress": "::1"
+  }
+]

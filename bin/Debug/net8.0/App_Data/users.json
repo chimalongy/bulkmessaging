@@ -1,0 +1,22 @@
+[
+  {
+    "id": "37e73223-6321-457c-9cdb-c0336b07e123",
+    "username": "admin",
+    "passwordHash": "Oh6qqavuKrI6zLUYXrRvF6ABMZOOa80o5s1a0WLcQC3pa5rTg\u002B9pt5fAJA3PZIsk",
+    "role": "SuperAdmin",
+    "isActive": true,
+    "createdAt": "2026-07-10T04:53:30.9919373Z",
+    "createdBy": "system",
+    "lastLoginAt": "2026-07-14T11:23:13.6848193Z"
+  },
+  {
+    "id": "363b840f-fde0-44c4-820c-35dde42c133c",
+    "username": "chimalongy",
+    "passwordHash": "w54oWZin1LmQKl03vIfQw/PfltwPKT3d1wI9ofR1\u002BiSwTpPjf\u002BiT6N4fns8yEbJd",
+    "role": "User",
+    "isActive": true,
+    "createdAt": "2026-07-12T00:39:02.973458Z",
+    "createdBy": "admin",
+    "lastLoginAt": "2026-07-14T08:51:19.6230539Z"
+  }
+]

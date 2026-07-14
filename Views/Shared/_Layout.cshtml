@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - BulkMessaging</title>
+    <link rel="stylesheet" href="~/css/app.css" asp-append-version="true" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --ink: #161B22;
+            --canvas: #F6F7FB;
+            --paper: #FFFFFF;
+            --brand: #4338CA;
+            --brand-2: #6D28D9;
+            --accent: #06B6D4;
+            --muted: #6B7280;
+            --line: #E5E7EB;
+            --danger: #DC2626;
+        }
+
+        body { background: var(--canvas); }
+
+        /* ---- Brand mark: chat-bubble frame around the logo ---- */
+        .brand { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; height: 100%; }
+        .brand-mark {
+            position: relative;
+            width: 38px; height: 38px;
+            flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+            background: white;
+            clip-path: path('M10,2 H30 A8,8 0 0 1 38,10 V18 A8,8 0 0 1 30,26 H16 L6,35 L14,26 H10 A8,8 0 0 1 2,18 V10 A8,8 0 0 1 10,2 Z');
+            overflow: hidden;
+        }
+        .brand-mark__image {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -46%);
+            width: 78%; height: 78%;
+            object-fit: cover; object-position: center;
+        }
+        .brand-mark__frame { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2; }
+        .brand-mark__frame path { fill: none; stroke: var(--brand); stroke-width: 2; stroke-linejoin: round; }
+        .brand-mark__pulse { fill: var(--accent); animation: bmPulse 2.4s ease-in-out infinite; }
+        @@keyframes bmPulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+        @@media (prefers-reduced-motion: reduce) { .brand-mark__pulse { animation: none; } }
+
+        .brand-name { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 18px; color: var(--ink); letter-spacing: -0.01em; line-height: 1; }
+        .brand-name__accent { color: var(--brand); }
+
+        /* ---- Nav tabs ---- */
+        .nav-tab {
+            position: relative; padding: 8px 4px; font-size: 14px; font-weight: 500;
+            color: var(--muted); text-decoration: none; transition: color .15s ease;
+            white-space: nowrap;
+        }
+        .nav-tab:hover { color: var(--ink); }
+        .nav-tab::after {
+            content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px;
+            background: var(--accent); border-radius: 2px; transform: scaleX(0);
+            transform-origin: left; transition: transform .18s ease;
+        }
+        .nav-tab:hover::after { transform: scaleX(1); }
+        .nav-tab--active { color: var(--ink); font-weight: 600; }
+        .nav-tab--active::after { transform: scaleX(1); }
+
+        /* ---- Identity pill ---- */
+        .identity { display: flex; align-items: center; gap: 10px; padding: 4px 6px 4px 4px; border-radius: 999px; border: 1px solid var(--line); background: var(--paper); }
+        .identity__avatar {
+            width: 28px; height: 28px; border-radius: 999px; display: flex; align-items: center; justify-content: center;
+            font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 12px; color: #fff;
+            background: linear-gradient(135deg, var(--brand), var(--brand-2)); position: relative; flex-shrink: 0;
+        }
+        .identity__status {
+            position: absolute; bottom: -1px; right: -1px; width: 8px; height: 8px; border-radius: 999px;
+            background: #22C55E; border: 2px solid var(--paper);
+        }
+        .identity__name { font-size: 13px; font-weight: 600; color: var(--ink); line-height: 1.1; }
+        .identity__role {
+            font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 500; letter-spacing: .06em;
+            color: var(--brand); text-transform: uppercase; line-height: 1.3;
+        }
+        .logout-btn {
+            display: flex; align-items: center; justify-content: center; width: 32px; height: 32px;
+            border-radius: 999px; color: var(--danger); background: transparent; border: none; cursor: pointer;
+            transition: background .15s ease;
+        }
+        .logout-btn:hover { background: #FEE2E2; }
+
+        /* ---- Mobile toggle ---- */
+        .mobile-toggle { display: none; }
+        #navToggle:checked ~ .mobile-menu { display: block; }
+        .mobile-menu { display: none; }
+        @@media (max-width: 767px) {
+            .mobile-toggle { display: flex; }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen flex flex-col">
+    @if (User.Identity?.IsAuthenticated == true)
+    {
+        var role = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? "";
+        var isAdmin = role == "SuperAdmin" || role == "Admin";
+        var username = User.Identity?.Name ?? "";
+        var initial = string.IsNullOrEmpty(username) ? "?" : username.Substring(0, 1).ToUpper();
+        var currentPath = Context.Request.Path.Value?.ToLowerInvariant() ?? "";
+        Func<string, bool> isActive = seg => currentPath.StartsWith("/" + seg.ToLowerInvariant());
+
+        <nav class="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-10">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center h-16">
+                    <div class="flex items-center gap-8">
+                        <a href="/" class="brand">
+                            <span class="brand-mark">
+                                <img src="/images/logo.png" alt="" class="brand-mark__image" />
+                                <svg class="brand-mark__frame" viewBox="0 0 40 38" aria-hidden="true">
+                                    <path d="M10,2 H30 A8,8 0 0 1 38,10 V18 A8,8 0 0 1 30,26 H16 L6,35 L14,26 H10 A8,8 0 0 1 2,18 V10 A8,8 0 0 1 10,2 Z" />
+                                    <circle class="brand-mark__pulse" cx="6" cy="34.5" r="2.2" />
+                                </svg>
+                            </span>
+                            <span class="brand-name">Bulk<span class="brand-name__accent">Messaging</span></span>
+                        </a>
+
+                        <div class="hidden md:flex items-center gap-6">
+                            <a href="/Dashboard/Index" class="nav-tab @(isActive("Dashboard") ? "nav-tab--active" : "")">Dashboard</a>
+                            <a href="/Campaigns/Index" class="nav-tab @(isActive("Campaigns") ? "nav-tab--active" : "")">Campaigns</a>
+                            <a href="/Templates/Index" class="nav-tab @(isActive("Templates") ? "nav-tab--active" : "")">Templates</a>
+                            @if (isAdmin)
+                            {
+                                <a href="/Users/Index" class="nav-tab @(isActive("Users") ? "nav-tab--active" : "")">Users</a>
+                                <a href="/AuditLog/Index" class="nav-tab @(isActive("AuditLog") ? "nav-tab--active" : "")">Audit Log</a>
+                            }
+                            <a href="/Auth/UpdatePassword" class="nav-tab @(isActive("Auth") ? "nav-tab--active" : "")">Change Password</a>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-3">
+                        <div class="identity">
+                            <span class="identity__avatar">
+                                @initial
+                                <span class="identity__status"></span>
+                            </span>
+                            <span class="hidden sm:flex flex-col leading-tight">
+                                <span class="identity__name">@username</span>
+                                <span class="identity__role">@role</span>
+                            </span>
+                        </div>
+                        <form asp-controller="Auth" asp-action="Logout" method="post">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="logout-btn" title="Logout" aria-label="Logout">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m0-9H5a2 2 0 00-2 2v14a2 2 0 002 2h2" />
+                                </svg>
+                            </button>
+                        </form>
+                        <label for="navToggle" class="mobile-toggle w-9 h-9 items-center justify-center rounded-lg border border-gray-200 cursor-pointer">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                            </svg>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <input type="checkbox" id="navToggle" class="hidden" />
+            <div class="mobile-menu md:hidden border-t border-gray-200">
+                <div class="px-4 pt-2 pb-4 space-y-1">
+                    <a href="/Dashboard/Index" class="block px-3 py-2 rounded-md text-sm font-medium @(isActive("Dashboard") ? "text-indigo-700 bg-indigo-50" : "text-gray-700 hover:bg-gray-50")">Dashboard</a>
+                    <a href="/Campaigns/Index" class="block px-3 py-2 rounded-md text-sm font-medium @(isActive("Campaigns") ? "text-indigo-700 bg-indigo-50" : "text-gray-700 hover:bg-gray-50")">Campaigns</a>
+                    <a href="/Templates/Index" class="block px-3 py-2 rounded-md text-sm font-medium @(isActive("Templates") ? "text-indigo-700 bg-indigo-50" : "text-gray-700 hover:bg-gray-50")">Templates</a>
+                    @if (isAdmin)
+                    {
+                        <a href="/Users/Index" class="block px-3 py-2 rounded-md text-sm font-medium @(isActive("Users") ? "text-indigo-700 bg-indigo-50" : "text-gray-700 hover:bg-gray-50")">Users</a>
+                        <a href="/AuditLog/Index" class="block px-3 py-2 rounded-md text-sm font-medium @(isActive("AuditLog") ? "text-indigo-700 bg-indigo-50" : "text-gray-700 hover:bg-gray-50")">Audit Log</a>
+                    }
+                    <a href="/Auth/UpdatePassword" class="block px-3 py-2 rounded-md text-sm font-medium @(isActive("Auth") ? "text-indigo-700 bg-indigo-50" : "text-gray-700 hover:bg-gray-50")">Change Password</a>
+                </div>
+            </div>
+        </nav>
+    }
+
+    <main class="flex-grow">
+        @RenderBody()
+    </main>
+
+    <footer class="bg-white border-t border-gray-200 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <p class="text-center text-sm text-gray-500">
+                &copy; @DateTime.Now.Year - BulkMessaging
+            </p>
+        </div>
+    </footer>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

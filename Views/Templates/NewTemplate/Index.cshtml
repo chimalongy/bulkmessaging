@@ -1,0 +1,1438 @@
+﻿@model BulkMessaging.Models.TemplateModel
+@{
+    var isEdit = !string.IsNullOrWhiteSpace(Model?.Id);
+    ViewData["Title"] = isEdit ? "Edit Template" : "New Template";
+}
+
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="mb-6">
+        <a href="/Templates/Index" class="template-back">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+            </svg>
+            Templates
+        </a>
+        <h1 class="text-2xl font-bold text-gray-900 mt-3" style="font-family: 'Space Grotesk', sans-serif;">@(isEdit ? "Edit Template" : "New Template")</h1>
+        <p class="text-gray-500 mt-1 text-sm">Set up a reusable message you can attach to any campaign.</p>
+    </div>
+
+    <form method="post" action="/Templates/SaveTemplate" id="templateForm" class="bg-white rounded-xl border border-gray-200 p-6 space-y-6">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="Id" value="@Model?.Id" />
+
+        <div>
+            <label for="Name" class="block text-sm font-medium text-gray-700 mb-1">Template name</label>
+            <input type="text" id="Name" name="Name" value="@Model?.Name" placeholder="e.g. Welcome message"
+                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all text-sm" />
+        </div>
+
+        <div>
+            <label for="Subject" class="block text-sm font-medium text-gray-700 mb-1">
+                Subject <span class="text-gray-400 font-normal">(optional, used for email campaigns)</span>
+            </label>
+            <input type="text" id="Subject" name="Subject" value="@Model?.Subject" placeholder="e.g. A quick update for you"
+                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all text-sm" />
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+                <label for="Cc" class="block text-sm font-medium text-gray-700 mb-1">
+                    Cc <span class="text-gray-400 font-normal">(optional)</span>
+                </label>
+                <input type="text" id="Cc" name="Cc" value="@Model?.Cc" placeholder="name@company.com, name2@company.com"
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all text-sm" />
+                <p class="text-xs text-gray-400 mt-1">Comma-separated email addresses</p>
+            </div>
+            <div>
+                <label for="Bcc" class="block text-sm font-medium text-gray-700 mb-1">
+                    Bcc <span class="text-gray-400 font-normal">(optional)</span>
+                </label>
+                <input type="text" id="Bcc" name="Bcc" value="@Model?.Bcc" placeholder="name@company.com, name2@company.com"
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all text-sm" />
+                <p class="text-xs text-gray-400 mt-1">Comma-separated email addresses</p>
+            </div>
+        </div>
+
+        <div>
+            <div class="flex items-center justify-between mb-1">
+                <label class="block text-sm font-medium text-gray-700">Message body</label>
+                <span id="charCount" class="text-xs text-gray-400">0 characters</span>
+            </div>
+
+            <!-- Text formatting toolbar (applies to whatever text block currently has focus) -->
+            <div class="wys-toolbar">
+                <select id="blockFormat" class="wys-select" title="Text style">
+                    <option value="P">Paragraph</option>
+                    <option value="H1">Heading 1</option>
+                    <option value="H2">Heading 2</option>
+                    <option value="H3">Heading 3</option>
+                </select>
+
+                <select id="fontFamily" class="wys-select" title="Font">
+                    <option value="">Font</option>
+                    <option value="Arial">Arial</option>
+                    <option value="Georgia">Georgia</option>
+                    <option value="'Times New Roman'">Times New Roman</option>
+                    <option value="'Courier New'">Courier New</option>
+                    <option value="Verdana">Verdana</option>
+                    <option value="'Trebuchet MS'">Trebuchet MS</option>
+                </select>
+
+                <select id="fontSize" class="wys-select" title="Size">
+                    <option value="">Size</option>
+                    <option value="1">Small</option>
+                    <option value="3" selected>Normal</option>
+                    <option value="4">Medium</option>
+                    <option value="5">Large</option>
+                    <option value="6">X-Large</option>
+                    <option value="7">XX-Large</option>
+                </select>
+
+                <span class="wys-divider"></span>
+
+                <button type="button" class="wys-btn" data-cmd="bold" title="Bold"><b>B</b></button>
+                <button type="button" class="wys-btn" data-cmd="italic" title="Italic"><i>I</i></button>
+                <button type="button" class="wys-btn" data-cmd="underline" title="Underline"><u>U</u></button>
+
+                <span class="wys-divider"></span>
+
+                <button type="button" class="wys-btn" data-cmd="justifyLeft" title="Align text left">⟸</button>
+                <button type="button" class="wys-btn" data-cmd="justifyCenter" title="Align text center">⟺</button>
+                <button type="button" class="wys-btn" data-cmd="insertUnorderedList" title="Bullet list">•≡</button>
+
+                <span class="wys-divider"></span>
+
+                <button type="button" id="insertLinkBtn" class="wys-btn" title="Turn selected text into a link">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 010 5.656l-3 3a4 4 0 01-5.656-5.656l1.5-1.5M10.172 13.828a4 4 0 010-5.656l3-3a4 4 0 015.656 5.656l-1.5 1.5" />
+                    </svg>
+                    Link
+                </button>
+            </div>
+
+            <!-- Editable canvas -->
+            <div id="wysEditor" class="wys-editor" contenteditable="true">
+                <p>Write your message here...</p>
+            </div>
+
+            <!-- Floating bubble toolbar shown when text is selected inside a paragraph/header -->
+            <div id="selectionBubble" class="selection-bubble hidden">
+                <button type="button" class="bubble-btn" data-cmd="bold" title="Bold"><b>B</b></button>
+                <button type="button" class="bubble-btn" data-cmd="italic" title="Italic"><i>I</i></button>
+                <span class="bubble-divider"></span>
+                <button type="button" id="bubbleLinkBtn" class="bubble-btn" title="Make link">🔗 Link</button>
+            </div>
+
+            <!-- "+" add block control -->
+            <div class="add-block-wrap">
+                <button type="button" id="addBlockBtn" class="add-block-btn">
+                    <span class="add-block-plus">+</span> Add block
+                </button>
+                <div id="addBlockMenu" class="add-block-menu hidden">
+                    <button type="button" data-type="header">🔠 <span>Header</span></button>
+                    <button type="button" data-type="paragraph">📝 <span>Paragraph</span></button>
+                    <button type="button" data-type="image">🖼️ <span>Picture</span></button>
+                    <button type="button" data-type="table">▦ <span>Table</span></button>
+                    <button type="button" data-type="overlay">🌄 <span>Picture with text overlay</span></button>
+                </div>
+            </div>
+
+            <!-- Actual field posted to the server -->
+            <textarea name="Body" id="BodyHidden" class="hidden"></textarea>
+
+            <div class="flex flex-wrap gap-2 mt-3">
+                <span class="text-xs text-gray-400 self-center mr-1">Insert:</span>
+                <button type="button" class="template-chip" data-insert="{{FirstName}}">First name</button>
+                <button type="button" class="template-chip" data-insert="{{LastName}}">Last name</button>
+                <button type="button" class="template-chip" data-insert="{{Company}}">Company</button>
+                <button type="button" class="template-chip" data-insert="{{Phone}}">Phone</button>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-3 pt-2 border-t border-gray-100">
+            <button type="submit" class="template-btn template-btn--primary">@(isEdit ? "Save changes" : "Save template")</button>
+            <a href="/Templates/Index" class="template-btn template-btn--ghost">Cancel</a>
+        </div>
+    </form>
+</div>
+
+<!-- Property Panel (shows when a block is selected) -->
+<div id="propPanel" class="prop-panel hidden">
+    <div class="prop-panel-header">
+        <span id="propPanelTitle">Block Properties</span>
+        <button type="button" id="closePropPanel" class="prop-panel-close">×</button>
+    </div>
+    <div class="prop-panel-body">
+
+        <div class="prop-row">
+            <label>Width</label>
+            <div class="prop-input-group">
+                <input type="range" id="propWidth" min="20" max="100" value="100" />
+                <span id="propWidthVal" class="prop-unit">100%</span>
+            </div>
+        </div>
+
+        <div class="prop-row">
+            <label id="propAlignLabel">Alignment</label>
+            <div class="align-btn-group">
+                <button type="button" class="align-btn" data-align="left" title="Left">⟸</button>
+                <button type="button" class="align-btn" data-align="center" title="Center">⟺</button>
+                <button type="button" class="align-btn" data-align="right" title="Right">⟹</button>
+            </div>
+        </div>
+
+        <div class="prop-row" id="propPaddingRow">
+            <label>Padding</label>
+            <div class="prop-input-group">
+                <input type="number" id="propPadding" placeholder="14" min="0" max="200" />
+                <span class="prop-unit">px</span>
+            </div>
+        </div>
+        <div class="prop-row" id="propBgRow">
+            <label>Background</label>
+            <input type="color" id="propBgColor" value="#ffffff" />
+        </div>
+        <div class="prop-row">
+            <label>Border Radius</label>
+            <div class="prop-input-group">
+                <input type="number" id="propRadius" placeholder="8" min="0" max="100" />
+                <span class="prop-unit">px</span>
+            </div>
+        </div>
+        <div class="prop-row" id="propImageRow">
+            <label>Image</label>
+            <input type="file" id="propImageFile" accept="image/*" class="hidden-file-input" />
+            <button type="button" id="propChooseFileBtn" class="prop-btn prop-btn--secondary">
+                📁 Choose from computer
+            </button>
+            <span id="propUploadStatus" class="upload-status"></span>
+            <div class="prop-divider"><span>or</span></div>
+            <input type="text" id="propImageUrl" placeholder="paste an image URL" />
+            <button type="button" id="propSetImageBtn" class="prop-btn">Use URL</button>
+        </div>
+        <div class="prop-row" id="propFitRow">
+            <label>Image Fit</label>
+            <div class="align-btn-group">
+                <button type="button" class="align-btn fit-btn" data-fit="contain" title="Show the whole image, letterboxed if needed">Contain</button>
+                <button type="button" class="align-btn fit-btn" data-fit="cover" title="Fill the box, cropping if needed">Cover</button>
+                <button type="button" class="align-btn fit-btn" data-fit="fill" title="Stretch to fill the box exactly">Fill</button>
+            </div>
+            <p class="fit-hint">Only matters once the block has a set height — drag the corner handle, or pick a fit to size it automatically.</p>
+        </div>
+        <div class="prop-row" id="propOverlayTextRow">
+            <label>Overlay Text</label>
+            <input type="text" id="propOverlayText" placeholder="Your headline here" />
+            <button type="button" id="propSetOverlayBtn" class="prop-btn">Update Text</button>
+        </div>
+        <div class="prop-row" id="propOverlayColorRow">
+            <label>Overlay Tint</label>
+            <input type="color" id="propOverlayColor" value="#000000" />
+        </div>
+        <div class="prop-row" id="propOverlayOpacityRow">
+            <label>Overlay Opacity</label>
+            <input type="range" id="propOverlayOpacity" min="0" max="100" value="50" />
+            <span id="propOverlayOpacityVal" class="prop-unit">50%</span>
+        </div>
+        <div class="prop-row" id="propTextPosRow">
+            <label>Caption Position</label>
+            <div class="pos-grid">
+                <button type="button" class="pos-btn" data-v="top" data-h="left" title="Top left">↖</button>
+                <button type="button" class="pos-btn" data-v="top" data-h="center" title="Top center">↑</button>
+                <button type="button" class="pos-btn" data-v="top" data-h="right" title="Top right">↗</button>
+                <button type="button" class="pos-btn" data-v="center" data-h="left" title="Middle left">←</button>
+                <button type="button" class="pos-btn" data-v="center" data-h="center" title="Center">•</button>
+                <button type="button" class="pos-btn" data-v="center" data-h="right" title="Middle right">→</button>
+                <button type="button" class="pos-btn" data-v="bottom" data-h="left" title="Bottom left">↙</button>
+                <button type="button" class="pos-btn" data-v="bottom" data-h="center" title="Bottom center">↓</button>
+                <button type="button" class="pos-btn" data-v="bottom" data-h="right" title="Bottom right">↘</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .template-back {
+        display: inline-flex; align-items: center; gap: 6px;
+        font-size: 13px; font-weight: 500; color: #6B7280; text-decoration: none;
+        transition: color .15s ease;
+    }
+    .template-back:hover { color: #4338CA; }
+
+    .template-chip {
+        padding: 5px 12px; border-radius: 999px; border: 1px dashed #C7D2FE;
+        background: #EEF2FF; color: #4338CA; font-size: 12px; font-weight: 500;
+        cursor: pointer; transition: background .15s ease;
+    }
+    .template-chip:hover { background: #E0E7FF; }
+
+    .template-btn {
+        padding: 9px 18px; border-radius: 8px; font-size: 14px; font-weight: 600;
+        text-decoration: none; cursor: pointer; border: none; transition: background .15s ease;
+    }
+    .template-btn--primary { background: #4338CA; color: #fff; }
+    .template-btn--primary:hover { background: #6D28D9; }
+    .template-btn--ghost { background: transparent; color: #374151; border: 1px solid #E5E7EB; }
+    .template-btn--ghost:hover { background: #F9FAFB; }
+
+    /* ---- WYSIWYG toolbar ---- */
+    .wys-toolbar {
+        display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+        padding: 8px; border: 1px solid #E5E7EB; border-bottom: none;
+        border-radius: 8px 8px 0 0; background: #F9FAFB;
+    }
+    .wys-select {
+        font-size: 12px; padding: 5px 6px; border-radius: 6px; border: 1px solid #E5E7EB;
+        background: #fff; color: #374151; cursor: pointer;
+    }
+    .wys-btn {
+        min-width: 28px; height: 28px; padding: 0 8px; display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+        border-radius: 6px; border: 1px solid transparent; background: transparent; color: #374151;
+        font-size: 12px; cursor: pointer; transition: background .15s ease, border-color .15s ease;
+    }
+    .wys-btn:hover { background: #fff; border-color: #E5E7EB; }
+    .wys-btn.active { background: #E0E7FF; border-color: #C7D2FE; color: #4338CA; }
+    .wys-divider { width: 1px; height: 20px; background: #E5E7EB; margin: 0 2px; }
+
+    .wys-editor {
+        min-height: 220px; padding: 14px; border: 1px solid #E5E7EB; border-radius: 0;
+        font-size: 14px; color: #111827; line-height: 1.6; outline: none; position: relative;
+    }
+    .wys-editor:focus-within { border-color: #6366F1; box-shadow: 0 0 0 2px rgba(99,102,241,.25); }
+    .wys-editor table td { border: 1px solid #E5E7EB; padding: 8px 10px; }
+    .wys-editor a { color: #4338CA; text-decoration: underline; }
+
+    /* ---- Unified block wrapper: every inserted component (header, paragraph, image, table, overlay) uses this ---- */
+    .wys-editor .editable-block {
+        position: relative;
+        margin: 10px 0;
+        border: 2px dashed transparent;
+        border-radius: 8px;
+        transition: border-color .15s ease, box-shadow .15s ease;
+        max-width: 100%;
+    }
+    .wys-editor .editable-block:hover { border-color: #C7D2FE; }
+    .wys-editor .editable-block.selected {
+        border-color: #4338CA;
+        box-shadow: 0 0 0 3px rgba(67,56,202,0.15);
+    }
+    .wys-editor .editable-block[data-block-type="image"],
+    .wys-editor .editable-block[data-block-type="overlay"] {
+        overflow: hidden;
+    }
+    .wys-editor .editable-block .block-label {
+        position: absolute; top: -10px; left: 10px;
+        background: #4338CA; color: #fff; font-size: 10px; font-weight: 600;
+        padding: 2px 8px; border-radius: 4px; pointer-events: none; opacity: 0;
+        transition: opacity .15s ease; z-index: 4;
+    }
+    .wys-editor .editable-block:hover .block-label,
+    .wys-editor .editable-block.selected .block-label { opacity: 1; }
+
+    /* Alignment (position within the row) for media-type blocks that are narrower than 100% */
+    .wys-editor .editable-block.align-left { margin-left: 0; margin-right: auto; }
+    .wys-editor .editable-block.align-center { margin-left: auto; margin-right: auto; }
+    .wys-editor .editable-block.align-right { margin-left: auto; margin-right: 0; }
+
+    /* Floating block toolbar: move / duplicate / delete, only visible when selected */
+    .wys-editor .editable-block .block-toolbar {
+        position: absolute; top: -14px; right: 8px;
+        display: none; align-items: center; gap: 2px;
+        background: #111827; border-radius: 6px; padding: 3px; z-index: 5;
+        box-shadow: 0 4px 10px rgba(0,0,0,.15);
+    }
+    .wys-editor .editable-block.selected .block-toolbar { display: inline-flex; }
+    .block-tool {
+        width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center;
+        border: none; background: transparent; color: #E5E7EB; font-size: 11px; border-radius: 4px; cursor: pointer;
+    }
+    .block-tool:hover { background: rgba(255,255,255,0.15); }
+    .block-tool--danger:hover { background: #DC2626; color: #fff; }
+    .block-tool-divider { width: 1px; height: 14px; background: rgba(255,255,255,0.25); margin: 0 2px; }
+
+    /* Resize handles */
+    .wys-editor .editable-block .resize-handle {
+        position: absolute; z-index: 5; display: none;
+        background: #4338CA; border: 2px solid #fff; box-shadow: 0 1px 3px rgba(0,0,0,.3);
+    }
+    .wys-editor .editable-block.selected .resize-handle { display: block; }
+    .resize-handle-e {
+        top: 50%; right: -6px; width: 12px; height: 26px; border-radius: 4px;
+        transform: translateY(-50%); cursor: ew-resize;
+    }
+    .resize-handle-se {
+        bottom: -6px; right: -6px; width: 14px; height: 14px; border-radius: 50%;
+        cursor: nwse-resize;
+    }
+
+    .wys-editor .editable-block[data-block-type="header"],
+    .wys-editor .editable-block[data-block-type="paragraph"] { padding: 8px; }
+    .wys-editor .editable-block[data-block-type="header"] h1,
+    .wys-editor .editable-block[data-block-type="header"] h2,
+    .wys-editor .editable-block[data-block-type="header"] h3 { margin: 0; }
+    .wys-editor .editable-block[data-block-type="header"],
+    .wys-editor .editable-block[data-block-type="paragraph"],
+    .wys-editor .editable-block[data-block-type="table"] { min-height: 20px; }
+    .wys-editor .editable-block[data-block-type="image"] img { display: block; width: 100%; }
+
+    /* ---- Table block controls ---- */
+    .wys-editor .table-wrap { overflow-x: auto; }
+    .wys-editor .table-controls {
+        display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap;
+    }
+    .table-tool {
+        font-size: 11px; padding: 4px 10px; border-radius: 6px; border: 1px solid #E5E7EB;
+        background: #F9FAFB; color: #374151; cursor: pointer; transition: background .15s ease;
+    }
+    .table-tool:hover { background: #F3F4F6; }
+
+    /* ---- Image overlay block ---- */
+    .wys-editor .image-overlay-block {
+        display: block;
+        background-size: cover;
+        background-position: center;
+        min-height: 180px;
+    }
+    .wys-editor .image-overlay-block .overlay-content {
+        position: relative;
+        z-index: 2;
+        padding: 14px;
+        color: #fff;
+        min-height: 180px;
+        display: flex;
+        flex-direction: column;
+        outline: none;
+    }
+    .wys-editor .image-overlay-block .overlay-bg {
+        position: absolute; inset: 0; z-index: 1;
+        background: rgba(0,0,0,0.5);
+    }
+
+    /* ---- Selection bubble (appears when text is highlighted) ---- */
+    .selection-bubble {
+        position: fixed; z-index: 200;
+        display: flex; align-items: center; gap: 2px;
+        background: #111827; border-radius: 8px; padding: 4px;
+        box-shadow: 0 6px 20px rgba(0,0,0,.25);
+    }
+    .selection-bubble.hidden { display: none; }
+    .bubble-btn {
+        border: none; background: transparent; color: #F3F4F6; font-size: 12px;
+        padding: 5px 8px; border-radius: 5px; cursor: pointer; white-space: nowrap;
+    }
+    .bubble-btn:hover { background: rgba(255,255,255,.15); }
+    .bubble-divider { width: 1px; height: 16px; background: rgba(255,255,255,.25); margin: 0 2px; }
+
+    /* ---- Add block control ---- */
+    .add-block-wrap { position: relative; margin-top: 10px; }
+    .add-block-btn {
+        width: 100%; padding: 10px; border: 1.5px dashed #C7D2FE; border-radius: 8px;
+        background: #F5F5FF; color: #4338CA; font-size: 13px; font-weight: 600; cursor: pointer;
+        display: flex; align-items: center; justify-content: center; gap: 6px;
+        transition: background .15s ease, border-color .15s ease;
+    }
+    .add-block-btn:hover { background: #EEF2FF; border-color: #818CF8; }
+    .add-block-plus { font-size: 16px; line-height: 1; }
+    .add-block-menu {
+        position: absolute; left: 0; right: 0; bottom: calc(100% + 6px);
+        background: #fff; border: 1px solid #E5E7EB; border-radius: 10px;
+        box-shadow: 0 10px 30px rgba(0,0,0,.12); padding: 6px; z-index: 50;
+    }
+    .add-block-menu.hidden { display: none; }
+    .add-block-menu button {
+        width: 100%; display: flex; align-items: center; gap: 10px; text-align: left;
+        padding: 9px 10px; border: none; background: transparent; border-radius: 6px;
+        font-size: 13px; color: #374151; cursor: pointer;
+    }
+    .add-block-menu button:hover { background: #F3F4F6; }
+
+    /* ---- Property Panel ---- */
+    .prop-panel {
+        position: fixed;
+        right: 20px; top: 80px;
+        width: 260px;
+        background: #fff;
+        border: 1px solid #E5E7EB;
+        border-radius: 12px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.12);
+        z-index: 100;
+        transition: transform .2s ease, opacity .2s ease;
+        max-height: calc(100vh - 100px);
+        overflow-y: auto;
+    }
+    .prop-panel.hidden { display: none; }
+    .prop-panel-header {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 12px 16px; border-bottom: 1px solid #F3F4F6;
+        font-size: 13px; font-weight: 600; color: #111827;
+        position: sticky; top: 0; background: #fff; border-radius: 12px 12px 0 0;
+    }
+    .prop-panel-close {
+        width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;
+        border: none; background: transparent; color: #9CA3AF; font-size: 18px; cursor: pointer;
+        border-radius: 4px; transition: background .15s ease;
+    }
+    .prop-panel-close:hover { background: #F3F4F6; color: #374151; }
+    .prop-panel-body { padding: 12px 16px; }
+    .prop-row { margin-bottom: 14px; }
+    .prop-row.hidden { display: none; }
+    .prop-row:last-child { margin-bottom: 0; }
+    .prop-row label {
+        display: block; font-size: 11px; font-weight: 600; color: #6B7280;
+        text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 6px;
+    }
+    .prop-row input[type="text"], .prop-row input[type="number"] {
+        width: 100%; padding: 6px 10px; border: 1px solid #E5E7EB; border-radius: 6px;
+        font-size: 13px; color: #374151; outline: none;
+    }
+    .prop-row input[type="text"]:focus, .prop-row input[type="number"]:focus {
+        border-color: #6366F1; box-shadow: 0 0 0 2px rgba(99,102,241,.2);
+    }
+    .prop-row input[type="color"] {
+        width: 100%; height: 32px; border: 1px solid #E5E7EB; border-radius: 6px;
+        cursor: pointer; padding: 2px;
+    }
+    .prop-row input[type="range"] { width: 100%; }
+    .prop-input-group { display: flex; align-items: center; gap: 6px; }
+    .prop-input-group input { flex: 1; }
+    .prop-unit { font-size: 11px; color: #9CA3AF; font-weight: 500; min-width: 30px; text-align: right; }
+    .prop-btn {
+        margin-top: 6px; width: 100%; padding: 6px 12px;
+        background: #4338CA; color: #fff; border: none; border-radius: 6px;
+        font-size: 12px; font-weight: 600; cursor: pointer; transition: background .15s ease;
+    }
+    .prop-btn:hover { background: #6D28D9; }
+    .prop-btn--secondary {
+        background: #fff; color: #4338CA; border: 1px solid #C7D2FE; margin-top: 0;
+    }
+    .prop-btn--secondary:hover { background: #EEF2FF; }
+    .prop-btn--secondary:disabled { opacity: .6; cursor: default; }
+    .hidden-file-input { display: none; }
+    .upload-status {
+        display: block; font-size: 11px; color: #6B7280; margin-top: 6px; min-height: 14px;
+    }
+    .upload-status.error { color: #DC2626; }
+    .upload-status.success { color: #059669; }
+    .prop-divider {
+        display: flex; align-items: center; text-align: center; color: #9CA3AF;
+        font-size: 10px; text-transform: uppercase; letter-spacing: .3px; margin: 10px 0;
+    }
+    .prop-divider::before, .prop-divider::after {
+        content: ''; flex: 1; height: 1px; background: #E5E7EB;
+    }
+    .prop-divider span { padding: 0 8px; }
+
+    .align-btn-group { display: flex; gap: 6px; }
+    .align-btn {
+        flex: 1; padding: 6px 0; border: 1px solid #E5E7EB; border-radius: 6px;
+        background: #fff; color: #374151; cursor: pointer; font-size: 13px;
+    }
+    .align-btn:hover { background: #F9FAFB; }
+    .align-btn.active { background: #EEF2FF; border-color: #818CF8; color: #4338CA; }
+    .fit-hint { font-size: 10px; color: #9CA3AF; margin-top: 6px; line-height: 1.4; }
+
+    .pos-grid {
+        display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px;
+        width: 100px; margin: 0 auto;
+    }
+    .pos-btn {
+        aspect-ratio: 1; border: 1px solid #E5E7EB; border-radius: 6px;
+        background: #fff; color: #6B7280; cursor: pointer; font-size: 12px;
+    }
+    .pos-btn:hover { background: #F9FAFB; }
+    .pos-btn.active { background: #4338CA; border-color: #4338CA; color: #fff; }
+</style>
+
+@section Scripts {
+    <script>
+        (function () {
+            var editor = document.getElementById('wysEditor');
+            var hidden = document.getElementById('BodyHidden');
+            var charCount = document.getElementById('charCount');
+            var form = document.getElementById('templateForm');
+            var savedRange = null;
+            var selectedBlock = null;
+            var blockCounter = 0;
+
+            // ---------------------------------------------------------------
+            // Property panel elements
+            // ---------------------------------------------------------------
+            var propPanel = document.getElementById('propPanel');
+            var propPanelTitle = document.getElementById('propPanelTitle');
+            var propWidth = document.getElementById('propWidth');
+            var propWidthVal = document.getElementById('propWidthVal');
+            var propAlignLabel = document.getElementById('propAlignLabel');
+            var propPaddingRow = document.getElementById('propPaddingRow');
+            var propPadding = document.getElementById('propPadding');
+            var propBgRow = document.getElementById('propBgRow');
+            var propBgColor = document.getElementById('propBgColor');
+            var propRadius = document.getElementById('propRadius');
+            var propImageRow = document.getElementById('propImageRow');
+            var propImageUrl = document.getElementById('propImageUrl');
+            var propSetImageBtn = document.getElementById('propSetImageBtn');
+            var propImageFile = document.getElementById('propImageFile');
+            var propChooseFileBtn = document.getElementById('propChooseFileBtn');
+            var propUploadStatus = document.getElementById('propUploadStatus');
+            var propFitRow = document.getElementById('propFitRow');
+            var propOverlayTextRow = document.getElementById('propOverlayTextRow');
+            var propOverlayText = document.getElementById('propOverlayText');
+            var propSetOverlayBtn = document.getElementById('propSetOverlayBtn');
+            var propOverlayColorRow = document.getElementById('propOverlayColorRow');
+            var propOverlayColor = document.getElementById('propOverlayColor');
+            var propOverlayOpacityRow = document.getElementById('propOverlayOpacityRow');
+            var propOverlayOpacity = document.getElementById('propOverlayOpacity');
+            var propOverlayOpacityVal = document.getElementById('propOverlayOpacityVal');
+            var propTextPosRow = document.getElementById('propTextPosRow');
+
+            // ---------------------------------------------------------------
+            // Selection helpers (for text formatting commands + chip inserts)
+            // ---------------------------------------------------------------
+            function saveSelection() {
+                var sel = window.getSelection();
+                if (sel.rangeCount > 0 && editor.contains(sel.anchorNode)) {
+                    savedRange = sel.getRangeAt(0).cloneRange();
+                }
+            }
+            function restoreSelection() {
+                if (savedRange) {
+                    var sel = window.getSelection();
+                    sel.removeAllRanges();
+                    sel.addRange(savedRange);
+                } else {
+                    editor.focus();
+                }
+            }
+            function placeCaretAtEnd(el) {
+                var range = document.createRange();
+                range.selectNodeContents(el);
+                range.collapse(false);
+                var sel = window.getSelection();
+                sel.removeAllRanges();
+                sel.addRange(range);
+                savedRange = range.cloneRange();
+            }
+            function updateCount() {
+                charCount.textContent = editor.innerText.trim().length + ' characters';
+            }
+
+            editor.addEventListener('keyup', function () { saveSelection(); updateCount(); });
+            editor.addEventListener('input', updateCount);
+            updateCount();
+
+            function preventFocusLoss(el) {
+                el.addEventListener('mousedown', function (e) { e.preventDefault(); });
+            }
+
+            // ---------------------------------------------------------------
+            // Block factory — every insertable component shares one wrapper
+            // class (.editable-block) and one set of behaviors: select,
+            // resize, align, move, duplicate, delete.
+            // ---------------------------------------------------------------
+            var PLACEHOLDER_IMG = 'https://placehold.co/600x300?text=Click+to+set+image';
+
+            function blockShell(type, label, innerHtml, opts) {
+                opts = opts || {};
+                blockCounter++;
+                var editableAttr = opts.atomic ? ' contenteditable="false"' : '';
+                var extraClass = opts.extraClass ? (' ' + opts.extraClass) : '';
+                var style = opts.style || 'width:100%;';
+                var fitAttr = opts.fit ? ' data-fit="' + opts.fit + '"' : '';
+                return '' +
+                    '<div class="editable-block' + extraClass + '" data-block-type="' + type + '" data-block-id="b' + blockCounter + '"' + editableAttr + fitAttr + ' style="' + style + '">' +
+                        '<span class="block-label">' + label + '</span>' +
+                        '<div class="block-toolbar" contenteditable="false">' +
+                            '<button type="button" class="block-tool" data-action="move-up" title="Move up">↑</button>' +
+                            '<button type="button" class="block-tool" data-action="move-down" title="Move down">↓</button>' +
+                            '<span class="block-tool-divider"></span>' +
+                            '<button type="button" class="block-tool" data-action="duplicate" title="Duplicate">⧉</button>' +
+                            '<button type="button" class="block-tool block-tool--danger" data-action="delete" title="Delete">🗑</button>' +
+                        '</div>' +
+                        innerHtml +
+                        (opts.resizeW !== false ? '<div class="resize-handle resize-handle-e" data-resize="w"></div>' : '') +
+                        (opts.resizeH ? '<div class="resize-handle resize-handle-se" data-resize="wh"></div>' : '') +
+                    '</div>' +
+                    '<p><br></p>';
+            }
+
+            var BLOCK_BUILDERS = {
+                header: function () {
+                    return blockShell('header', 'Header', '<h2>New header — click to edit</h2>');
+                },
+                paragraph: function () {
+                    return blockShell('paragraph', 'Paragraph', '<p>New paragraph — click to edit. Select text to turn it into a link.</p>');
+                },
+                image: function () {
+                    return blockShell('image', 'Picture',
+                        '<img src="' + PLACEHOLDER_IMG + '" alt="" style="object-fit:contain;" />',
+                        { atomic: true, resizeW: true, resizeH: true, fit: 'contain' });
+                },
+                table: function () {
+                    var html = '<div class="table-wrap">' +
+                        '<table contenteditable="true" style="border-collapse:collapse;width:100%;table-layout:fixed;">' +
+                            '<colgroup><col style="width:50%;"><col style="width:50%;"></colgroup>' +
+                            '<tbody>' +
+                                '<tr><td style="border:1px solid #E5E7EB;padding:8px 10px;">Header 1</td><td style="border:1px solid #E5E7EB;padding:8px 10px;">Header 2</td></tr>' +
+                                '<tr><td style="border:1px solid #E5E7EB;padding:8px 10px;">&nbsp;</td><td style="border:1px solid #E5E7EB;padding:8px 10px;">&nbsp;</td></tr>' +
+                            '</tbody>' +
+                        '</table>' +
+                        '</div>' +
+                        '<div class="table-controls" contenteditable="false">' +
+                            '<button type="button" class="table-tool" data-taction="add-row">+ Row</button>' +
+                            '<button type="button" class="table-tool" data-taction="del-row">− Row</button>' +
+                            '<button type="button" class="table-tool" data-taction="add-col">+ Col</button>' +
+                            '<button type="button" class="table-tool" data-taction="del-col">− Col</button>' +
+                        '</div>';
+                    return blockShell('table', 'Table', html, { atomic: true, resizeW: true });
+                },
+                overlay: function () {
+                    var html =
+                        '<div class="overlay-bg" style="background:rgba(0,0,0,0.5);"></div>' +
+                        '<div class="overlay-content" contenteditable="true" style="justify-content:center;align-items:flex-start;text-align:left;">' +
+                            '<div>Your headline here</div>' +
+                        '</div>';
+                    return blockShell('overlay', 'Picture overlay', html, {
+                        atomic: true, resizeW: true, resizeH: true,
+                        extraClass: 'image-overlay-block',
+                        style: 'width:100%;background-image:url(' + PLACEHOLDER_IMG + ');',
+                        fit: 'cover'
+                    });
+                }
+            };
+
+            function addBlock(type) {
+                var builder = BLOCK_BUILDERS[type];
+                if (!builder) return;
+                editor.insertAdjacentHTML('beforeend', builder());
+                updateCount();
+                var all = editor.querySelectorAll('.editable-block');
+                var last = all[all.length - 1];
+                last.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                selectBlock(last);
+                var trailingP = last.nextElementSibling;
+                if (trailingP) placeCaretAtEnd(trailingP);
+            }
+
+            // ---------------------------------------------------------------
+            // Re-hydrating a loaded template — saved HTML (from
+            // exportCleanHtml) has the label/toolbar/resize-handles and
+            // table-controls stripped out, since those are editor-only
+            // chrome and shouldn't appear in an emailed body. When editing
+            // an existing template, this puts that chrome back onto each
+            // .editable-block so it's editable again.
+            // ---------------------------------------------------------------
+            var BLOCK_LABELS = { header: 'Header', paragraph: 'Paragraph', image: 'Picture', table: 'Table', overlay: 'Picture overlay' };
+
+            function blockToolbarHtml() {
+                return '<div class="block-toolbar" contenteditable="false">' +
+                    '<button type="button" class="block-tool" data-action="move-up" title="Move up">↑</button>' +
+                    '<button type="button" class="block-tool" data-action="move-down" title="Move down">↓</button>' +
+                    '<span class="block-tool-divider"></span>' +
+                    '<button type="button" class="block-tool" data-action="duplicate" title="Duplicate">⧉</button>' +
+                    '<button type="button" class="block-tool block-tool--danger" data-action="delete" title="Delete">🗑</button>' +
+                '</div>';
+            }
+
+            function tableControlsHtml() {
+                return '<div class="table-controls" contenteditable="false">' +
+                    '<button type="button" class="table-tool" data-taction="add-row">+ Row</button>' +
+                    '<button type="button" class="table-tool" data-taction="del-row">− Row</button>' +
+                    '<button type="button" class="table-tool" data-taction="add-col">+ Col</button>' +
+                    '<button type="button" class="table-tool" data-taction="del-col">− Col</button>' +
+                '</div>';
+            }
+
+            function hydrateLoadedBlock(block) {
+                blockCounter++;
+                if (!block.dataset.blockId) block.dataset.blockId = 'b' + blockCounter;
+                var type = block.dataset.blockType;
+
+                if (!block.querySelector(':scope > .block-label')) {
+                    block.insertAdjacentHTML('afterbegin', '<span class="block-label">' + (BLOCK_LABELS[type] || 'Block') + '</span>');
+                }
+                if (!block.querySelector(':scope > .block-toolbar')) {
+                    block.insertAdjacentHTML('beforeend', blockToolbarHtml());
+                }
+                if (!block.querySelector(':scope > .resize-handle-e')) {
+                    block.insertAdjacentHTML('beforeend', '<div class="resize-handle resize-handle-e" data-resize="w"></div>');
+                }
+                if ((type === 'image' || type === 'overlay') && !block.querySelector(':scope > .resize-handle-se')) {
+                    block.insertAdjacentHTML('beforeend', '<div class="resize-handle resize-handle-se" data-resize="wh"></div>');
+                }
+                if (type === 'table' && !block.querySelector(':scope > .table-controls')) {
+                    block.insertAdjacentHTML('beforeend', tableControlsHtml());
+                }
+            }
+
+            // ---------------------------------------------------------------
+            // Add-block "+" menu
+            // ---------------------------------------------------------------
+            var addBlockBtn = document.getElementById('addBlockBtn');
+            var addBlockMenu = document.getElementById('addBlockMenu');
+            preventFocusLoss(addBlockBtn);
+            addBlockBtn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                addBlockMenu.classList.toggle('hidden');
+            });
+            addBlockMenu.addEventListener('mousedown', function (e) { e.preventDefault(); });
+            addBlockMenu.addEventListener('click', function (e) {
+                var btn = e.target.closest('button[data-type]');
+                if (!btn) return;
+                addBlock(btn.getAttribute('data-type'));
+                addBlockMenu.classList.add('hidden');
+            });
+            document.addEventListener('click', function (e) {
+                if (!addBlockMenu.contains(e.target) && e.target !== addBlockBtn) {
+                    addBlockMenu.classList.add('hidden');
+                }
+            });
+
+            // ---------------------------------------------------------------
+            // Selecting a block + showing the property panel
+            // ---------------------------------------------------------------
+            function clearBlockSelection() {
+                if (selectedBlock) selectedBlock.classList.remove('selected');
+                selectedBlock = null;
+                propPanel.classList.add('hidden');
+            }
+
+            function selectBlock(block) {
+                if (selectedBlock) selectedBlock.classList.remove('selected');
+                selectedBlock = block;
+                block.classList.add('selected');
+                showPropPanel(block);
+            }
+
+            function rgbToHex(rgb) {
+                if (!rgb || rgb === 'transparent' || rgb === 'rgba(0, 0, 0, 0)') return '#ffffff';
+                var match = rgb.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+                if (!match) return rgb.indexOf('#') === 0 ? rgb : '#ffffff';
+                return '#' + [match[1], match[2], match[3]].map(function (x) {
+                    var hex = parseInt(x, 10).toString(16);
+                    return hex.length === 1 ? '0' + hex : hex;
+                }).join('');
+            }
+
+            function showPropPanel(block) {
+                var type = block.dataset.blockType;
+                var isText = (type === 'header' || type === 'paragraph');
+                var isImage = (type === 'image');
+                var isTable = (type === 'table');
+                var isOverlay = (type === 'overlay');
+
+                propPanel.classList.remove('hidden');
+                propPanelTitle.textContent = {
+                    header: 'Header Properties', paragraph: 'Paragraph Properties',
+                    image: 'Picture Properties', table: 'Table Properties', overlay: 'Picture Overlay Properties'
+                }[type] || 'Block Properties';
+
+                // Width
+                var widthPct = parseInt(block.style.width, 10) || 100;
+                propWidth.value = widthPct;
+                propWidthVal.textContent = widthPct + '%';
+
+                // Alignment label + active state
+                propAlignLabel.textContent = isText ? 'Text Align' : 'Position';
+                var activeAlign = isText
+                    ? (block.querySelector('h1,h2,h3,p') || block).style.textAlign || 'left'
+                    : (block.classList.contains('align-right') ? 'right' : block.classList.contains('align-center') ? 'center' : 'left');
+                document.querySelectorAll('.align-btn').forEach(function (b) {
+                    b.classList.toggle('active', b.getAttribute('data-align') === activeAlign);
+                });
+
+                // Padding / background (hidden for image + overlay, which are filled edge-to-edge)
+                propPaddingRow.classList.toggle('hidden', isImage || isOverlay);
+                propBgRow.classList.toggle('hidden', isImage || isOverlay);
+                if (!isImage && !isOverlay) {
+                    propPadding.value = parseInt(block.style.padding, 10) || 14;
+                    propBgColor.value = rgbToHex(block.style.backgroundColor) || '#ffffff';
+                }
+                propRadius.value = parseInt(block.style.borderRadius, 10) || 8;
+
+                // Image / overlay specific rows
+                propImageRow.classList.toggle('hidden', !(isImage || isOverlay));
+                propFitRow.classList.toggle('hidden', !(isImage || isOverlay));
+                propOverlayTextRow.classList.toggle('hidden', !isOverlay);
+                propOverlayColorRow.classList.toggle('hidden', !isOverlay);
+                propOverlayOpacityRow.classList.toggle('hidden', !isOverlay);
+                propTextPosRow.classList.toggle('hidden', !isOverlay);
+
+                if (isImage || isOverlay) {
+                    var currentFit = block.dataset.fit || (isOverlay ? 'cover' : 'contain');
+                    document.querySelectorAll('.fit-btn').forEach(function (b) {
+                        b.classList.toggle('active', b.getAttribute('data-fit') === currentFit);
+                    });
+                }
+
+                propUploadStatus.textContent = '';
+                propUploadStatus.classList.remove('error', 'success');
+
+                if (isImage) {
+                    var img = block.querySelector('img');
+                    propImageUrl.value = img ? img.getAttribute('src') : '';
+                }
+                if (isOverlay) {
+                    var bg = block.style.backgroundImage;
+                    propImageUrl.value = bg ? bg.replace(/^url\(["']?/, '').replace(/["']?\)$/, '') : '';
+                    var contentEl = block.querySelector('.overlay-content');
+                    propOverlayText.value = contentEl ? contentEl.innerText : '';
+                    var overlayBg = block.querySelector('.overlay-bg');
+                    if (overlayBg) {
+                        var rgba = overlayBg.style.backgroundColor;
+                        var match = rgba.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
+                        if (match) {
+                            propOverlayColor.value = rgbToHex('rgb(' + match[1] + ',' + match[2] + ',' + match[3] + ')');
+                            propOverlayOpacity.value = match[4] ? Math.round(parseFloat(match[4]) * 100) : 50;
+                            propOverlayOpacityVal.textContent = propOverlayOpacity.value + '%';
+                        }
+                    }
+                    var v = contentEl ? (contentEl.style.justifyContent === 'flex-end' ? 'bottom' : contentEl.style.justifyContent === 'center' ? 'center' : 'top') : 'center';
+                    var h = contentEl ? (contentEl.style.alignItems === 'flex-end' ? 'right' : contentEl.style.alignItems === 'center' ? 'center' : 'left') : 'left';
+                    document.querySelectorAll('.pos-btn').forEach(function (b) {
+                        b.classList.toggle('active', b.getAttribute('data-v') === v && b.getAttribute('data-h') === h);
+                    });
+                }
+            }
+
+            document.getElementById('closePropPanel').addEventListener('click', clearBlockSelection);
+
+            // Click / mouseup delegation for selecting a block vs. deselecting
+            editor.addEventListener('mouseup', function (e) {
+                saveSelection();
+                var block = e.target.closest('.editable-block');
+                if (block) {
+                    selectBlock(block);
+                } else {
+                    clearBlockSelection();
+                }
+            });
+
+            // ---------------------------------------------------------------
+            // Delegated block-toolbar actions: move / duplicate / delete
+            // ---------------------------------------------------------------
+            editor.addEventListener('click', function (e) {
+                var toolBtn = e.target.closest('.block-tool');
+                if (!toolBtn) return;
+                e.preventDefault();
+                e.stopPropagation();
+                var block = toolBtn.closest('.editable-block');
+                if (!block) return;
+                var action = toolBtn.getAttribute('data-action');
+
+                if (action === 'delete') {
+                    var trailing = block.nextElementSibling;
+                    if (block === selectedBlock) clearBlockSelection();
+                    block.remove();
+                    updateCount();
+                } else if (action === 'duplicate') {
+                    var clone = block.cloneNode(true);
+                    clone.classList.remove('selected');
+                    block.insertAdjacentElement('afterend', clone);
+                    selectBlock(clone);
+                    updateCount();
+                } else if (action === 'move-up') {
+                    var prev = block.previousElementSibling;
+                    if (prev && prev.classList.contains('editable-block')) {
+                        editor.insertBefore(block, prev);
+                    } else if (prev) {
+                        // skip over the trailing <p> spacer that follows the previous block
+                        var prevPrev = prev.previousElementSibling;
+                        if (prevPrev) editor.insertBefore(block, prevPrev);
+                    }
+                } else if (action === 'move-down') {
+                    var next = block.nextElementSibling; // spacer <p>
+                    var afterNext = next ? next.nextElementSibling : null;
+                    if (afterNext) {
+                        editor.insertBefore(afterNext, block);
+                    }
+                }
+            });
+
+            // ---------------------------------------------------------------
+            // Resize handles (delegated) — width for every block, height too
+            // for pictures / overlays
+            // ---------------------------------------------------------------
+            editor.addEventListener('mousedown', function (e) {
+                var handle = e.target.closest('.resize-handle');
+                if (!handle) return;
+                e.preventDefault();
+                e.stopPropagation();
+                var block = handle.closest('.editable-block');
+                var mode = handle.getAttribute('data-resize');
+                var startX = e.clientX, startY = e.clientY;
+                var containerWidth = editor.clientWidth;
+                var startWidth = block.getBoundingClientRect().width;
+                var startHeight = block.getBoundingClientRect().height;
+
+                function onMove(ev) {
+                    if (mode.indexOf('w') > -1) {
+                        var newWidthPx = startWidth + (ev.clientX - startX);
+                        var pct = Math.max(20, Math.min(100, Math.round(newWidthPx / containerWidth * 100)));
+                        block.style.width = pct + '%';
+                        if (selectedBlock === block) {
+                            propWidth.value = pct;
+                            propWidthVal.textContent = pct + '%';
+                        }
+                    }
+                    if (mode.indexOf('h') > -1) {
+                        var newHeight = Math.max(80, Math.round(startHeight + (ev.clientY - startY)));
+                        if (block.dataset.blockType === 'image') {
+                            var img = block.querySelector('img');
+                            if (img) {
+                                img.style.height = newHeight + 'px';
+                                img.style.objectFit = block.dataset.fit || 'contain';
+                            }
+                        } else {
+                            block.style.minHeight = newHeight + 'px';
+                            var content = block.querySelector('.overlay-content');
+                            if (content) content.style.minHeight = newHeight + 'px';
+                        }
+                    }
+                }
+                function onUp() {
+                    document.removeEventListener('mousemove', onMove);
+                    document.removeEventListener('mouseup', onUp);
+                }
+                document.addEventListener('mousemove', onMove);
+                document.addEventListener('mouseup', onUp);
+            });
+
+            // ---------------------------------------------------------------
+            // FIX: Table controls — add/remove row, add/remove column.
+            // These buttons render inside .table-controls (which is
+            // contenteditable="false" so clicks reach the button instead of
+            // being swallowed by the editor), but previously nothing was
+            // listening for clicks on them. This delegated handler wires up
+            // all four data-taction values and keeps the <colgroup> widths
+            // evenly distributed whenever a column is added or removed.
+            // ---------------------------------------------------------------
+            editor.addEventListener('click', function (e) {
+                var tBtn = e.target.closest('.table-tool');
+                if (!tBtn) return;
+                e.preventDefault();
+                e.stopPropagation();
+
+                var block = tBtn.closest('.editable-block');
+                var table = block && block.querySelector('table');
+                if (!table) return;
+
+                var tbody = table.querySelector('tbody');
+                var rows = Array.prototype.slice.call(tbody.querySelectorAll('tr'));
+                var colCount = rows.length ? rows[0].children.length : 0;
+                var action = tBtn.getAttribute('data-taction');
+
+                function makeCell(text) {
+                    var td = document.createElement('td');
+                    td.style.border = '1px solid #E5E7EB';
+                    td.style.padding = '8px 10px';
+                    td.innerHTML = text || '&nbsp;';
+                    return td;
+                }
+
+                if (action === 'add-row') {
+                    var newRow = document.createElement('tr');
+                    for (var i = 0; i < colCount; i++) newRow.appendChild(makeCell());
+                    tbody.appendChild(newRow);
+
+                } else if (action === 'del-row') {
+                    if (rows.length > 1) tbody.removeChild(rows[rows.length - 1]);
+
+                } else if (action === 'add-col') {
+                    var colgroup = table.querySelector('colgroup');
+                    if (colgroup) {
+                        colgroup.appendChild(document.createElement('col'));
+                        var cols = colgroup.querySelectorAll('col');
+                        var pct = (100 / cols.length).toFixed(2) + '%';
+                        cols.forEach(function (c) { c.style.width = pct; });
+                    }
+                    rows.forEach(function (row, idx) {
+                        row.appendChild(makeCell(idx === 0 ? 'Header ' + (row.children.length + 1) : null));
+                    });
+
+                } else if (action === 'del-col') {
+                    if (colCount > 1) {
+                        var colgroup2 = table.querySelector('colgroup');
+                        if (colgroup2) {
+                            var cols2 = colgroup2.querySelectorAll('col');
+                            colgroup2.removeChild(cols2[cols2.length - 1]);
+                            var remaining = colgroup2.querySelectorAll('col');
+                            var pct2 = (100 / remaining.length).toFixed(2) + '%';
+                            remaining.forEach(function (c) { c.style.width = pct2; });
+                        }
+                        rows.forEach(function (row) { row.removeChild(row.lastElementChild); });
+                    }
+                }
+
+                updateCount();
+            });
+
+            // ---------------------------------------------------------------
+            // Property panel controls
+            // ---------------------------------------------------------------
+            propWidth.addEventListener('input', function () {
+                if (!selectedBlock) return;
+                selectedBlock.style.width = this.value + '%';
+                propWidthVal.textContent = this.value + '%';
+            });
+
+            document.querySelectorAll('.align-btn').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    if (!selectedBlock) return;
+                    var align = this.getAttribute('data-align');
+                    var type = selectedBlock.dataset.blockType;
+                    document.querySelectorAll('.align-btn').forEach(function (b) { b.classList.remove('active'); });
+                    this.classList.add('active');
+
+                    if (type === 'header' || type === 'paragraph') {
+                        var target = selectedBlock.querySelector('h1,h2,h3,p') || selectedBlock;
+                        target.style.textAlign = align;
+                    } else {
+                        selectedBlock.classList.remove('align-left', 'align-center', 'align-right');
+                        selectedBlock.classList.add('align-' + align);
+                    }
+                });
+            });
+
+            document.querySelectorAll('.fit-btn').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    if (!selectedBlock) return;
+                    var mode = this.getAttribute('data-fit'); // 'contain' | 'cover' | 'fill'
+                    var type = selectedBlock.dataset.blockType;
+                    if (type !== 'image' && type !== 'overlay') return;
+
+                    selectedBlock.dataset.fit = mode;
+                    document.querySelectorAll('.fit-btn').forEach(function (b) { b.classList.remove('active'); });
+                    this.classList.add('active');
+
+                    if (type === 'image') {
+                        var img = selectedBlock.querySelector('img');
+                        if (img) {
+                            img.style.objectFit = mode;
+                            // Fit only has a visible effect once the block has an
+                            // explicit height; if the user hasn't dragged the
+                            // corner handle yet, give it a sensible starting
+                            // height (its current rendered height) so switching
+                            // fit modes shows an immediate result.
+                            if (!img.style.height) {
+                                var currentHeight = Math.round(img.getBoundingClientRect().height) || 200;
+                                img.style.height = currentHeight + 'px';
+                            }
+                        }
+                    } else {
+                        selectedBlock.style.backgroundSize = (mode === 'fill') ? '100% 100%' : mode;
+                    }
+                });
+            });
+
+            propPadding.addEventListener('input', function () {
+                if (selectedBlock) selectedBlock.style.padding = this.value + 'px';
+            });
+            propBgColor.addEventListener('input', function () {
+                if (selectedBlock) selectedBlock.style.backgroundColor = this.value;
+            });
+            propRadius.addEventListener('input', function () {
+                if (selectedBlock) selectedBlock.style.borderRadius = this.value + 'px';
+            });
+
+            // Applies a resolved image URL (whether typed in or returned by
+            // the upload endpoint) to whichever block type is showing it.
+            function applyImageUrl(block, url) {
+                if (!block) return;
+                if (block.dataset.blockType === 'image') {
+                    var img = block.querySelector('img');
+                    if (img) img.setAttribute('src', url);
+                } else if (block.dataset.blockType === 'overlay') {
+                    block.style.backgroundImage = 'url(' + url + ')';
+                }
+            }
+
+            propSetImageBtn.addEventListener('click', function () {
+                if (!selectedBlock) return;
+                applyImageUrl(selectedBlock, propImageUrl.value || PLACEHOLDER_IMG);
+            });
+
+            // ---------------------------------------------------------------
+            // "Choose from computer" — uploads the picked file to the server
+            // and renders whatever URL the server hands back.
+            //
+            // Assumes an endpoint at POST /Templates/UploadImage that:
+            //   - accepts multipart/form-data with a "file" field
+            //   - returns JSON like { "url": "https://.../image.jpg" }
+            // Adjust the URL / field name / response property below to match
+            // your actual controller action if it differs.
+            // ---------------------------------------------------------------
+            function getAntiForgeryToken() {
+                var tokenInput = form.querySelector('input[name="__RequestVerificationToken"]');
+                return tokenInput ? tokenInput.value : '';
+            }
+
+            function setUploadStatus(text, kind) {
+                propUploadStatus.textContent = text;
+                propUploadStatus.classList.remove('error', 'success');
+                if (kind) propUploadStatus.classList.add(kind);
+            }
+
+            function uploadImageFile(file, block) {
+                setUploadStatus('Uploading…');
+                propChooseFileBtn.disabled = true;
+
+                var formData = new FormData();
+                formData.append('file', file);
+
+                fetch('/Templates/UploadImage', {
+                    method: 'POST',
+                    headers: { 'RequestVerificationToken': getAntiForgeryToken() },
+                    body: formData
+                })
+                    .then(function (res) {
+                        if (!res.ok) throw new Error('Upload failed with status ' + res.status);
+                        return res.json();
+                    })
+                    .then(function (data) {
+                        var url = data && data.url;
+                        if (!url) throw new Error('Server response did not include a url');
+                        applyImageUrl(block, url);
+                        if (selectedBlock === block) propImageUrl.value = url;
+                        setUploadStatus('Uploaded ✓', 'success');
+                        setTimeout(function () { setUploadStatus(''); }, 2500);
+                    })
+                    .catch(function (err) {
+                        console.error(err);
+                        setUploadStatus('Upload failed — try again', 'error');
+                    })
+                    .finally(function () {
+                        propChooseFileBtn.disabled = false;
+                        propImageFile.value = '';
+                    });
+            }
+
+            preventFocusLoss(propChooseFileBtn);
+            propChooseFileBtn.addEventListener('click', function () {
+                if (!selectedBlock) return;
+                propImageFile.click();
+            });
+            propImageFile.addEventListener('change', function () {
+                var file = this.files && this.files[0];
+                if (!file || !selectedBlock) return;
+                if (!file.type.match(/^image\//)) {
+                    setUploadStatus('Please choose an image file', 'error');
+                    return;
+                }
+                uploadImageFile(file, selectedBlock);
+            });
+            propSetOverlayBtn.addEventListener('click', function () {
+                if (selectedBlock && selectedBlock.dataset.blockType === 'overlay') {
+                    var content = selectedBlock.querySelector('.overlay-content > div') || selectedBlock.querySelector('.overlay-content');
+                    if (content) content.innerText = propOverlayText.value;
+                }
+            });
+            function hexToRgba(hex, alpha) {
+                var r = parseInt(hex.slice(1, 3), 16);
+                var g = parseInt(hex.slice(3, 5), 16);
+                var b = parseInt(hex.slice(5, 7), 16);
+                return 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')';
+            }
+            propOverlayColor.addEventListener('input', function () {
+                if (selectedBlock && selectedBlock.dataset.blockType === 'overlay') {
+                    var overlayBg = selectedBlock.querySelector('.overlay-bg');
+                    if (overlayBg) overlayBg.style.backgroundColor = hexToRgba(this.value, propOverlayOpacity.value / 100);
+                }
+            });
+            propOverlayOpacity.addEventListener('input', function () {
+                propOverlayOpacityVal.textContent = this.value + '%';
+                if (selectedBlock && selectedBlock.dataset.blockType === 'overlay') {
+                    var overlayBg = selectedBlock.querySelector('.overlay-bg');
+                    if (overlayBg) overlayBg.style.backgroundColor = hexToRgba(propOverlayColor.value, this.value / 100);
+                }
+            });
+
+            // Caption position (3x3 grid) — controls vertical + horizontal placement
+            // of the overlay text within the picture. This is the "top / bottom /
+            // left / right / center" alignment for the overlay caption.
+            document.querySelectorAll('.pos-btn').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    if (!selectedBlock || selectedBlock.dataset.blockType !== 'overlay') return;
+                    var v = this.getAttribute('data-v');
+                    var h = this.getAttribute('data-h');
+                    var content = selectedBlock.querySelector('.overlay-content');
+                    if (!content) return;
+                    content.style.justifyContent = (v === 'top') ? 'flex-start' : (v === 'bottom') ? 'flex-end' : 'center';
+                    content.style.alignItems = (h === 'left') ? 'flex-start' : (h === 'right') ? 'flex-end' : 'center';
+                    content.style.textAlign = h;
+                    document.querySelectorAll('.pos-btn').forEach(function (b) { b.classList.remove('active'); });
+                    this.classList.add('active');
+                });
+            });
+
+            // ---------------------------------------------------------------
+            // Text formatting toolbar (bold/italic/underline/align/list/etc.)
+            // ---------------------------------------------------------------
+            document.querySelectorAll('.wys-btn[data-cmd]').forEach(function (btn) {
+                preventFocusLoss(btn);
+                btn.addEventListener('click', function () {
+                    editor.focus();
+                    restoreSelection();
+                    document.execCommand(btn.dataset.cmd, false, null);
+                    saveSelection();
+                });
+            });
+
+            document.getElementById('blockFormat').addEventListener('mousedown', function (e) { e.stopPropagation(); });
+            document.getElementById('blockFormat').addEventListener('change', function () {
+                editor.focus();
+                restoreSelection();
+                document.execCommand('formatBlock', false, this.value);
+                saveSelection();
+            });
+            document.getElementById('fontFamily').addEventListener('change', function () {
+                if (!this.value) return;
+                editor.focus();
+                restoreSelection();
+                document.execCommand('fontName', false, this.value);
+                saveSelection();
+            });
+            document.getElementById('fontSize').addEventListener('change', function () {
+                if (!this.value) return;
+                editor.focus();
+                restoreSelection();
+                document.execCommand('fontSize', false, this.value);
+                saveSelection();
+            });
+
+            // ---------------------------------------------------------------
+            // Turn selected text into a hyperlink — via toolbar button and
+            // via the floating selection bubble that appears on highlight.
+            // ---------------------------------------------------------------
+            function makeLinkFromSelection() {
+                var sel = window.getSelection();
+                if (!sel || sel.isCollapsed || sel.toString().trim() === '') {
+                    alert('Select some text first, then click Link.');
+                    return;
+                }
+                var url = prompt('Enter the URL (include https://)');
+                if (!url) return;
+                restoreSelection();
+                document.execCommand('createLink', false, url);
+                editor.querySelectorAll('a').forEach(function (a) {
+                    a.setAttribute('target', '_blank');
+                    a.setAttribute('rel', 'noopener noreferrer');
+                });
+                saveSelection();
+                updateCount();
+            }
+
+            var insertLinkBtn = document.getElementById('insertLinkBtn');
+            preventFocusLoss(insertLinkBtn);
+            insertLinkBtn.addEventListener('click', makeLinkFromSelection);
+
+            var selectionBubble = document.getElementById('selectionBubble');
+            var bubbleLinkBtn = document.getElementById('bubbleLinkBtn');
+            preventFocusLoss(selectionBubble);
+
+            function hideBubble() { selectionBubble.classList.add('hidden'); }
+            function showBubbleForSelection() {
+                var sel = window.getSelection();
+                if (!sel.rangeCount || sel.isCollapsed || sel.toString().trim() === '' || !editor.contains(sel.anchorNode)) {
+                    hideBubble();
+                    return;
+                }
+                var rect = sel.getRangeAt(0).getBoundingClientRect();
+                if (!rect || (rect.width === 0 && rect.height === 0)) { hideBubble(); return; }
+                selectionBubble.classList.remove('hidden');
+                var bubbleRect = selectionBubble.getBoundingClientRect();
+                var top = rect.top - bubbleRect.height - 8;
+                var left = rect.left + rect.width / 2 - bubbleRect.width / 2;
+                selectionBubble.style.top = Math.max(8, top) + 'px';
+                selectionBubble.style.left = Math.max(8, left) + 'px';
+            }
+
+            document.addEventListener('mouseup', function (e) {
+                if (selectionBubble.contains(e.target)) return;
+                setTimeout(showBubbleForSelection, 0);
+            });
+            editor.addEventListener('keyup', function () { setTimeout(showBubbleForSelection, 0); });
+            document.addEventListener('mousedown', function (e) {
+                if (!selectionBubble.contains(e.target)) hideBubble();
+            });
+            window.addEventListener('scroll', hideBubble, true);
+
+            selectionBubble.querySelectorAll('.bubble-btn[data-cmd]').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    restoreSelection();
+                    document.execCommand(this.dataset.cmd, false, null);
+                    saveSelection();
+                });
+            });
+            bubbleLinkBtn.addEventListener('click', function () {
+                restoreSelection();
+                makeLinkFromSelection();
+                hideBubble();
+            });
+
+            // ---------------------------------------------------------------
+            // Variable chips insert as plain text at the cursor
+            // ---------------------------------------------------------------
+            document.querySelectorAll('.template-chip').forEach(function (chip) {
+                preventFocusLoss(chip);
+                chip.addEventListener('click', function () {
+                    editor.focus();
+                    restoreSelection();
+                    document.execCommand('insertText', false, chip.getAttribute('data-insert'));
+                    saveSelection();
+                    updateCount();
+                });
+            });
+
+            // ---------------------------------------------------------------
+            // Convert legacy <font> tags (from execCommand) into clean
+            // inline-styled spans, then export a clean copy of the HTML
+            // (stripped of editor-only chrome: labels, toolbars, handles,
+            // selection state, contenteditable flags) into the hidden field.
+            // ---------------------------------------------------------------
+            function sanitizeFontTags(root) {
+                var sizeMap = { '1': '10px', '2': '13px', '3': '16px', '4': '18px', '5': '24px', '6': '32px', '7': '48px' };
+                root.querySelectorAll('font').forEach(function (font) {
+                    var span = document.createElement('span');
+                    var styles = [];
+                    if (font.getAttribute('face')) styles.push('font-family:' + font.getAttribute('face'));
+                    if (font.getAttribute('size')) styles.push('font-size:' + (sizeMap[font.getAttribute('size')] || '16px'));
+                    if (font.getAttribute('color')) styles.push('color:' + font.getAttribute('color'));
+                    span.setAttribute('style', styles.join(';'));
+                    span.innerHTML = font.innerHTML;
+                    font.parentNode.replaceChild(span, font);
+                });
+            }
+
+            function exportCleanHtml() {
+                var clone = editor.cloneNode(true);
+                clone.querySelectorAll('.block-label, .block-toolbar, .resize-handle, .table-controls').forEach(function (el) { el.remove(); });
+                clone.querySelectorAll('.editable-block').forEach(function (el) {
+                    el.classList.remove('selected');
+                    el.removeAttribute('contenteditable');
+                });
+                clone.querySelectorAll('[contenteditable]').forEach(function (el) { el.removeAttribute('contenteditable'); });
+                return clone.innerHTML;
+            }
+
+            form.addEventListener('submit', function () {
+                clearBlockSelection();
+                hideBubble();
+                sanitizeFontTags(editor);
+                hidden.value = exportCleanHtml();
+            });
+
+            // ---------------------------------------------------------------
+            // Edit mode: if this template already has a saved Body, load it
+            // into the canvas and re-attach the editor chrome so every
+            // block (header, paragraph, picture, table, overlay) is fully
+            // editable again, exactly as if it had just been added.
+            // ---------------------------------------------------------------
+            var initialBody = @Json.Serialize(Model?.Body ?? "");
+            if (initialBody && initialBody.trim() !== '') {
+                editor.innerHTML = initialBody;
+                editor.querySelectorAll('.editable-block').forEach(function (block) {
+                    hydrateLoadedBlock(block);
+                });
+            }
+            updateCount();
+        })();
+    </script>
+}

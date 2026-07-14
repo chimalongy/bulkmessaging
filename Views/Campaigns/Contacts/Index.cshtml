@@ -1,0 +1,140 @@
+﻿@model BulkMessaging.Models.CampaignModel
+@{
+    ViewData["Title"] = (Model?.Name ?? "Campaign") + " — Contacts";
+    var encodedName = Uri.EscapeDataString(Model?.Name ?? "");
+    var badCount = Model?.BadContacts?.Count ?? 0;
+}
+
+<div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="mb-6">
+        <a href="/Campaigns/@encodedName/Index" class="campaign-back">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+            </svg>
+            @Model?.Name
+        </a>
+        <h1 class="text-2xl font-bold text-gray-900 mt-3" style="font-family: 'Space Grotesk', sans-serif;">Contact List</h1>
+        <p class="text-gray-500 mt-1 text-sm">
+            @Model?.Contacts.Count contact@(Model?.Contacts.Count == 1 ? "" : "s")
+            @if (badCount > 0)
+            {
+                <text>· @badCount invalid</text>
+            }
+        </p>
+    </div>
+
+    <div class="contact-tabs" role="tablist" aria-label="Contact list view">
+        <button type="button" class="contact-tab active" data-tab="valid">
+            Valid <span class="contact-tab-count">@(Model?.Contacts.Count ?? 0)</span>
+        </button>
+        <button type="button" class="contact-tab" data-tab="bad">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 6l12 12M18 6L6 18" />
+            </svg>
+            Bad <span class="contact-tab-count">@badCount</span>
+        </button>
+    </div>
+
+    <div class="bg-white rounded-xl border border-gray-200 p-6">
+        <div id="validPanel" class="contact-panel">
+            @if (Model != null && Model.Contacts.Count > 0)
+            {
+                <ul class="campaign-contact-list">
+                    @foreach (var contact in Model.Contacts)
+                    {
+                        <li>@contact</li>
+                    }
+                </ul>
+            }
+            else
+            {
+                <p class="text-sm text-gray-500">No contacts in this campaign.</p>
+            }
+        </div>
+
+        <div id="badPanel" class="contact-panel hidden">
+            @if (Model != null && Model.BadContacts.Count > 0)
+            {
+                <ul class="campaign-contact-list campaign-contact-list--bad">
+                    @foreach (var contact in Model.BadContacts)
+                    {
+                        <li>@contact</li>
+                    }
+                </ul>
+            }
+            else
+            {
+                <p class="text-sm text-gray-500">No invalid contacts — everything passed cleaning.</p>
+            }
+        </div>
+    </div>
+</div>
+
+<script>
+    (function () {
+        var tabs = document.querySelectorAll('.contact-tab');
+        var panels = {
+            valid: document.getElementById('validPanel'),
+            bad: document.getElementById('badPanel')
+        };
+
+        tabs.forEach(function (tab) {
+            tab.addEventListener('click', function () {
+                tabs.forEach(function (t) { t.classList.remove('active'); });
+                tab.classList.add('active');
+
+                var target = tab.getAttribute('data-tab');
+                Object.keys(panels).forEach(function (key) {
+                    panels[key].classList.toggle('hidden', key !== target);
+                });
+            });
+        });
+    })();
+</script>
+
+<style>
+    .campaign-back {
+        display: inline-flex; align-items: center; gap: 6px;
+        font-size: 13px; font-weight: 500; color: #6B7280; text-decoration: none;
+        transition: color .15s ease;
+    }
+    .campaign-back:hover { color: #4338CA; }
+
+    .contact-tabs {
+        display: inline-flex; gap: 2px; margin-bottom: 14px;
+        border: 1px solid #E5E7EB; border-radius: 10px; padding: 3px; background: #F9FAFB;
+    }
+    .contact-tab {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 7px 14px; border: none; border-radius: 7px; background: transparent;
+        color: #6B7280; font-size: 13px; font-weight: 600; cursor: pointer;
+        transition: background .15s ease, color .15s ease, box-shadow .15s ease;
+    }
+    .contact-tab svg { flex-shrink: 0; }
+    .contact-tab:hover:not(.active) { background: #F3F4F6; color: #374151; }
+    .contact-tab.active {
+        background: #fff; color: #4338CA;
+        box-shadow: 0 1px 2px rgba(0,0,0,.06), 0 0 0 1px #E5E7EB;
+    }
+    .contact-tab-count {
+        font-size: 11px; font-weight: 700; color: #9CA3AF; background: #F3F4F6;
+        border-radius: 999px; padding: 1px 6px; min-width: 18px; text-align: center;
+    }
+    .contact-tab.active .contact-tab-count { color: #4338CA; background: #EEF2FF; }
+
+    .contact-panel.hidden { display: none; }
+
+    .campaign-contact-list {
+        list-style: none; margin: 0; padding: 0;
+        display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 6px;
+    }
+    .campaign-contact-list li {
+        font-size: 13px; font-family: ui-monospace, monospace; color: #374151;
+        background: #F9FAFB; border: 1px solid #F3F4F6; border-radius: 6px;
+        padding: 6px 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .campaign-contact-list--bad li {
+        background: #FEF2F2; border-color: #FECACA; color: #B91C1C;
+    }
+</style>

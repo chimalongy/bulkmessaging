@@ -1,0 +1,177 @@
+﻿@model List<BulkMessaging.Models.CampaignModel>
+@{
+    ViewData["Title"] = "Campaigns";
+}
+
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="flex items-start justify-between mb-8">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900" style="font-family: 'Space Grotesk', sans-serif;">Campaigns</h1>
+            <p class="text-gray-500 mt-1 text-sm">Contact lists you can send messages to.</p>
+        </div>
+
+        <a href="/Campaigns/NewCampaign" class="campaigns-cta">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+            Create new campaign
+        </a>
+    </div>
+
+    @if (Model != null && Model.Count > 0)
+    {
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            @foreach (var campaign in Model)
+            {
+                var isEmail = campaign.Type == BulkMessaging.Models.CampaignType.Email;
+                var cleanStatus = campaign.ContactCleanStatus;
+                <div class="campaign-card">
+                    <div class="campaign-card-body">
+                        <div class="campaign-card-top">
+                            <h2 class="campaign-card-title">@campaign.Name</h2>
+                            <span class="campaign-badge @(isEmail ? "campaign-badge--email" : "campaign-badge--sms")">
+                                @(isEmail ? "Email" : "SMS")
+                            </span>
+                        </div>
+                        <p class="campaign-card-meta">@campaign.Contacts.Count contact@(campaign.Contacts.Count == 1 ? "" : "s")</p>
+                        <p class="campaign-card-meta">Created @campaign.CreatedAt.ToLocalTime().ToString("MMM d, yyyy h:mm tt")</p>
+                        <div class="campaign-clean-row">
+                            <span class="clean-status clean-status--@cleanStatus.ToString().ToLower()">
+                                @if (cleanStatus == BulkMessaging.Models.ContactCleanStatus.Cleaning)
+                                {
+                                    <svg class="clean-status-spinner" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                                        <circle cx="12" cy="12" r="9" stroke-opacity="0.25" />
+                                        <path stroke-linecap="round" d="M21 12a9 9 0 00-9-9" />
+                                    </svg>
+                                    <text>Cleaning…</text>
+                                }
+                                else if (cleanStatus == BulkMessaging.Models.ContactCleanStatus.Clean)
+                                {
+                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                    <text>Clean</text>
+                                }
+                                else
+                                {
+                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 6l12 12M18 6L6 18" />
+                                    </svg>
+                                    <text>Not clean</text>
+                                }
+                            </span>
+                            @if (cleanStatus == BulkMessaging.Models.ContactCleanStatus.Clean && campaign.BadContacts.Count > 0)
+                            {
+                                <span class="clean-bad-count">@campaign.BadContacts.Count invalid removed</span>
+                            }
+                        </div>
+                    </div>
+                    <div class="campaign-card-actions">
+                        <a href="/Campaigns/@Uri.EscapeDataString(campaign.Name)/Index" class="campaign-card-btn campaign-card-btn--open">Open</a>
+                        <form method="post" action="/Campaigns/DeleteCampaign" class="campaign-card-delete-form"
+                              onsubmit="return confirm('Delete this campaign? This cannot be undone.');">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@campaign.Id" />
+                            <button type="submit" class="campaign-card-btn campaign-card-btn--danger">Delete</button>
+                        </form>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <!-- Empty state -->
+        <div class="bg-white rounded-xl border border-gray-200 p-12 text-center">
+            <div class="campaigns-empty-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-4-4 4 4 0 004 4zm6-2a4 4 0 10-4-4" />
+                </svg>
+            </div>
+            <h2 class="text-base font-semibold text-gray-900 mb-1">No campaigns yet</h2>
+            <p class="text-sm text-gray-500 max-w-sm mx-auto mb-6">Create a campaign to build a contact list you can message later.</p>
+            <a href="/Campaigns/NewCampaign" class="campaigns-cta campaigns-cta--ghost">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+                Create your first campaign
+            </a>
+        </div>
+    }
+</div>
+
+<style>
+    .campaigns-cta {
+        display: inline-flex; align-items: center; gap: 8px;
+        padding: 9px 16px; border-radius: 8px;
+        background: var(--brand, #4338CA); color: #fff;
+        font-size: 14px; font-weight: 600; text-decoration: none;
+        transition: background .15s ease;
+    }
+    .campaigns-cta:hover { background: var(--brand-2, #6D28D9); }
+    .campaigns-cta--ghost {
+        background: transparent; color: var(--brand, #4338CA);
+        border: 1px solid var(--line, #E5E7EB);
+    }
+    .campaigns-cta--ghost:hover { background: #F5F3FF; }
+    .campaigns-empty-icon {
+        width: 48px; height: 48px; margin: 0 auto 16px;
+        border-radius: 999px; display: flex; align-items: center; justify-content: center;
+        background: #EEF2FF; color: var(--brand, #4338CA);
+    }
+
+    /* ---- Campaign cards ---- */
+    .campaign-card {
+        background: #fff; border: 1px solid #E5E7EB; border-radius: 12px;
+        padding: 18px; display: flex; flex-direction: column; justify-content: space-between;
+        transition: border-color .15s ease, box-shadow .15s ease;
+    }
+    .campaign-card:hover { border-color: #C7D2FE; box-shadow: 0 4px 14px rgba(67,56,202,0.08); }
+    .campaign-card-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+    .campaign-card-title {
+        font-size: 15px; font-weight: 600; color: #111827; margin: 0;
+        overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .campaign-badge {
+        flex-shrink: 0; font-size: 10px; font-weight: 700; text-transform: uppercase;
+        letter-spacing: .3px; padding: 3px 8px; border-radius: 999px;
+    }
+    .campaign-badge--email { background: #EEF2FF; color: #4338CA; }
+    .campaign-badge--sms { background: #ECFDF5; color: #059669; }
+    .campaign-card-meta { font-size: 12px; color: #6B7280; margin: 2px 0 0; }
+
+    .campaign-clean-row {
+        display: flex; align-items: center; gap: 8px; margin-top: 8px; flex-wrap: wrap;
+    }
+    .clean-status {
+        display: inline-flex; align-items: center; gap: 4px;
+        font-size: 10px; font-weight: 700; text-transform: uppercase;
+        letter-spacing: .3px; padding: 3px 8px; border-radius: 999px;
+    }
+    .clean-status svg { flex-shrink: 0; }
+    .clean-status--notclean { background: #FEF2F2; color: #DC2626; }
+    .clean-status--cleaning { background: #FEF3C7; color: #B45309; }
+    .clean-status--clean { background: #ECFDF5; color: #059669; }
+    .clean-status-spinner { animation: clean-spin 0.8s linear infinite; }
+    @@keyframes clean-spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+    .clean-bad-count { font-size: 11px; color: #9CA3AF; }
+
+    .campaign-card-actions {
+        display: flex; gap: 8px; margin-top: 14px; padding-top: 14px;
+        border-top: 1px solid #F3F4F6;
+    }
+    .campaign-card-delete-form { flex: 1; display: flex; }
+    .campaign-card-btn {
+        flex: 1; text-align: center; padding: 6px 10px; border-radius: 6px;
+        font-size: 12px; font-weight: 600; text-decoration: none; cursor: pointer;
+        border: 1px solid transparent; transition: background .15s ease;
+        display: inline-flex; align-items: center; justify-content: center;
+    }
+    .campaign-card-btn--open { background: #EEF2FF; color: #4338CA; border-color: #C7D2FE; }
+    .campaign-card-btn--open:hover { background: #E0E7FF; }
+    .campaign-card-btn--danger { width: 100%; background: #FEF2F2; color: #DC2626; border-color: #FECACA; }
+    .campaign-card-btn--danger:hover { background: #FEE2E2; }
+</style>

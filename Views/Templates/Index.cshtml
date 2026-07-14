@@ -1,0 +1,119 @@
+﻿@model List<BulkMessaging.Models.TemplateModel>
+@{
+    ViewData["Title"] = "Templates";
+}
+
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="flex items-start justify-between mb-8">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900" style="font-family: 'Space Grotesk', sans-serif;">Templates</h1>
+            <p class="text-gray-500 mt-1 text-sm">Reusable message layouts for your campaigns.</p>
+        </div>
+
+        <a href="/Templates/NewTemplate/index" class="templates-cta">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+            Create Template
+        </a>
+    </div>
+
+    @if (Model != null && Model.Count > 0)
+    {
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            @foreach (var template in Model)
+            {
+                <div class="template-card">
+                    <div class="template-card-body">
+                        <h2 class="template-card-title">@template.Name</h2>
+                        @if (!string.IsNullOrWhiteSpace(template.Subject))
+                        {
+                            <p class="template-card-subject">@template.Subject</p>
+                        }
+                        <p class="template-card-meta">Updated @template.UpdatedAt.ToLocalTime().ToString("MMM d, yyyy h:mm tt")</p>
+                    </div>
+                    <div class="template-card-actions">
+                        <a href="/Templates/EditTemplate/@template.Id" class="template-card-btn template-card-btn--primary">Edit</a>
+                        <form method="post" action="/Templates/DeleteTemplate" class="template-card-delete-form"
+                              onsubmit="return confirm('Delete this template? This cannot be undone.');">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@template.Id" />
+                            <button type="submit" class="template-card-btn template-card-btn--danger">Delete</button>
+                        </form>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <!-- Empty state -->
+        <div class="bg-white rounded-xl border border-gray-200 p-12 text-center">
+            <div class="templates-empty-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+            </div>
+            <h2 class="text-base font-semibold text-gray-900 mb-1">No templates yet</h2>
+            <p class="text-sm text-gray-500 max-w-sm mx-auto mb-6">Create a template to reuse the same message layout across future campaigns.</p>
+            <a href="/Templates/NewTemplate/index" class="templates-cta templates-cta--ghost">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+                Create your first template
+            </a>
+        </div>
+    }
+</div>
+
+<style>
+    .templates-cta {
+        display: inline-flex; align-items: center; gap: 8px;
+        padding: 9px 16px; border-radius: 8px;
+        background: var(--brand, #4338CA); color: #fff;
+        font-size: 14px; font-weight: 600; text-decoration: none;
+        transition: background .15s ease;
+    }
+    .templates-cta:hover { background: var(--brand-2, #6D28D9); }
+    .templates-cta--ghost {
+        background: transparent; color: var(--brand, #4338CA);
+        border: 1px solid var(--line, #E5E7EB);
+    }
+    .templates-cta--ghost:hover { background: #F5F3FF; }
+    .templates-empty-icon {
+        width: 48px; height: 48px; margin: 0 auto 16px;
+        border-radius: 999px; display: flex; align-items: center; justify-content: center;
+        background: #EEF2FF; color: var(--brand, #4338CA);
+    }
+
+    /* ---- Template cards ---- */
+    .template-card {
+        background: #fff; border: 1px solid #E5E7EB; border-radius: 12px;
+        padding: 18px; display: flex; flex-direction: column; justify-content: space-between;
+        transition: border-color .15s ease, box-shadow .15s ease;
+    }
+    .template-card:hover { border-color: #C7D2FE; box-shadow: 0 4px 14px rgba(67,56,202,0.08); }
+    .template-card-title {
+        font-size: 15px; font-weight: 600; color: #111827; margin: 0 0 4px;
+        overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .template-card-subject {
+        font-size: 12px; color: #6B7280; margin: 0 0 8px;
+        overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .template-card-meta { font-size: 11px; color: #9CA3AF; margin: 0; }
+    .template-card-actions {
+        display: flex; gap: 8px; margin-top: 14px; padding-top: 14px;
+        border-top: 1px solid #F3F4F6;
+    }
+    .template-card-delete-form { flex: 1; display: flex; }
+    .template-card-btn {
+        flex: 1; text-align: center; padding: 6px 10px; border-radius: 6px;
+        font-size: 12px; font-weight: 600; text-decoration: none; cursor: pointer;
+        border: 1px solid transparent; transition: background .15s ease;
+    }
+    .template-card-btn--primary { background: #EEF2FF; color: #4338CA; border-color: #C7D2FE; }
+    .template-card-btn--primary:hover { background: #E0E7FF; }
+    .template-card-btn--danger { width: 100%; background: #FEF2F2; color: #DC2626; border-color: #FECACA; }
+    .template-card-btn--danger:hover { background: #FEE2E2; }
+</style>
