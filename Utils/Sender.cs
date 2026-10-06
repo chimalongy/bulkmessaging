@@ -1,0 +1,146 @@
+﻿using System;
+using System.IO;
+using System.Net;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Configuration;
+using SendGrid;
+using SendGrid.Helpers.Mail;
+using Twilio;
+using Twilio.Rest.Api.V2010.Account;
+using Twilio.Types;
+using BulkMessaging.Models;
+
+namespace BulkMessaging.Utils
+{
+    public static class Sender
+    {
+        private static readonly IConfigurationRoot Config = new ConfigurationBuilder()
+            .SetBasePath(Directory.GetCurrentDirectory())
+            .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+            .Build();
+
+        // ---- Twilio config (unchanged — SMS still uses one shared account) ----
+        private static readonly string TwilioAccountSid = Config["Twilio:AccountSid"];
+        private static readonly string TwilioAuthToken = Config["Twilio:AuthToken"];
+        private static readonly string TwilioFromNumber = Config["Twilio:FromNumber"];
+
+        private static bool _twilioInitialized = false;
+
+        static Sender()
+        {
+            if (string.IsNullOrWhiteSpace(TwilioAccountSid))
+                throw new InvalidOperationException("Missing config value: Twilio:AccountSid");
+            if (string.IsNullOrWhiteSpace(TwilioAuthToken))
+                throw new InvalidOperationException("Missing config value: Twilio:AuthToken");
+            if (string.IsNullOrWhiteSpace(TwilioFromNumber))
+                throw new InvalidOperationException("Missing config value: Twilio:FromNumber");
+        }
+
+        /// <summary>
+        /// Sends a single email via the SendGrid Web API (POST /v3/mail/send),
+        /// using the API key and From address belonging to the given sender account.
+        /// A fresh SendGridClient is created per call since the API key can differ
+        /// per sender account — it can no longer be cached as a single static client.
+        /// </summary>
+        public static async Task<MessageSendResult> sendEmails(
+            string toEmail,
+            string subject,
+            string body,
+            string senderApiKey,
+            string senderFromEmail,
+            string senderFromName,
+            bool isHtml = false)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(senderApiKey))
+                    throw new InvalidOperationException("Sender account is missing an API key.");
+                if (string.IsNullOrWhiteSpace(senderFromEmail))
+                    throw new InvalidOperationException("Sender account is missing a From Email.");
+
+                var client = new SendGridClient(senderApiKey);
+                var from = new EmailAddress(senderFromEmail, senderFromName);
+                var to = new EmailAddress(toEmail);
+
+                var msg = isHtml
+                    ? MailHelper.CreateSingleEmail(from, to, subject, plainTextContent: null, htmlContent: body)
+                    : MailHelper.CreateSingleEmail(from, to, subject, plainTextContent: body, htmlContent: null);
+
+                var response = await client.SendEmailAsync(msg);
+                var success = response.StatusCode == HttpStatusCode.Accepted || response.StatusCode == HttpStatusCode.OK;
+
+                string resultMessage;
+                if (success)
+                {
+                    resultMessage = $"Email sent to {toEmail} from {senderFromEmail}";
+                }
+                else
+                {
+                    var errorBody = await response.Body.ReadAsStringAsync();
+                    resultMessage = $"Failed to send email to {toEmail}: {response.StatusCode} - {errorBody}";
+                }
+
+                Console.WriteLine(resultMessage);
+
+                return new MessageSendResult
+                {
+                    Success = success,
+                    Message = resultMessage,
+                    Timestamp = DateTime.UtcNow
+                };
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to send email to {toEmail}: {ex.Message}");
+
+                return new MessageSendResult
+                {
+                    Success = false,
+                    Message = $"Failed to send email to {toEmail}: {ex.Message}",
+                    Timestamp = DateTime.UtcNow
+                };
+            }
+        }
+
+        /// <summary>
+        /// Sends an SMS via Twilio.
+        /// </summary>
+        public static async Task<MessageSendResult> sendSMS(string toPhoneNumber, string messageBody)
+        {
+            try
+            {
+                if (!_twilioInitialized)
+                {
+                    TwilioClient.Init(TwilioAccountSid, TwilioAuthToken);
+                    _twilioInitialized = true;
+                }
+
+                var message = await MessageResource.CreateAsync(
+                    body: messageBody,
+                    from: new PhoneNumber(TwilioFromNumber),
+                    to: new PhoneNumber(toPhoneNumber)
+                );
+
+                Console.WriteLine($"SMS sent to {toPhoneNumber}, SID: {message.Sid}");
+
+                return new MessageSendResult
+                {
+                    Success = true,
+                    Message = $"SMS sent to {toPhoneNumber}, SID: {message.Sid}",
+                    Timestamp = DateTime.UtcNow
+                };
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to send SMS to {toPhoneNumber}: {ex.Message}");
+
+                return new MessageSendResult
+                {
+                    Success = false,
+                    Message = $"Failed to send SMS to {toPhoneNumber}: {ex.Message}",
+                    Timestamp = DateTime.UtcNow
+                };
+            }
+        }
+    }
+}

@@ -1,0 +1,244 @@
+﻿@model BulkMessaging.Models.CampaignModel
+@{
+    ViewData["Title"] = "New Campaign";
+}
+
+<div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="mb-6">
+        <a href="/Campaigns/Index" class="campaign-back">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+            </svg>
+            Campaigns
+        </a>
+        <h1 class="text-2xl font-bold text-gray-900 mt-3" style="font-family: 'Space Grotesk', sans-serif;">New Campaign</h1>
+        <p class="text-gray-500 mt-1 text-sm">Give it a name, pick a type, and add the contacts it should reach.</p>
+    </div>
+
+    @if (!ViewData.ModelState.IsValid)
+    {
+        <div class="campaign-error-box">
+            @foreach (var entry in ViewData.ModelState)
+            {
+                foreach (var error in entry.Value.Errors)
+                {
+                    <p>@error.ErrorMessage</p>
+                }
+            }
+        </div>
+    }
+
+    <form method="post" action="/Campaigns/SaveCampaign" enctype="multipart/form-data" id="campaignForm" class="bg-white rounded-xl border border-gray-200 p-6 space-y-6">
+        @Html.AntiForgeryToken()
+
+        <div>
+            <label for="Name" class="block text-sm font-medium text-gray-700 mb-1">Campaign name</label>
+            <input type="text" id="Name" name="Name" value="@Model?.Name" placeholder="e.g. Spring promo"
+                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all text-sm" />
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Campaign type</label>
+            <div class="campaign-type-group">
+                <label class="campaign-type-option">
+                    <input type="radio" name="Type" value="Email" checked="@(Model == null || Model.Type == BulkMessaging.Models.CampaignType.Email)" />
+                    <span class="campaign-type-label">
+                        <span class="campaign-type-title">Email</span>
+                        <span class="campaign-type-sub">Contacts are email addresses</span>
+                    </span>
+                </label>
+                <label class="campaign-type-option">
+                    <input type="radio" name="Type" value="Sms" checked="@(Model?.Type == BulkMessaging.Models.CampaignType.Sms)" />
+                    <span class="campaign-type-label">
+                        <span class="campaign-type-title">SMS</span>
+                        <span class="campaign-type-sub">Contacts are phone numbers</span>
+                    </span>
+                </label>
+            </div>
+        </div>
+
+        <div>
+            <label for="ContactsText" class="block text-sm font-medium text-gray-700 mb-1">Paste contacts</label>
+            <p class="text-xs text-gray-400 mb-2">One per line — an email address or phone number depending on the type above.</p>
+            <textarea id="ContactsText" name="ContactsText" rows="6" placeholder="jane@example.com&#10;john@example.com"
+                      class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all text-sm font-mono"></textarea>
+        </div>
+
+        <div class="campaign-divider"><span>and / or</span></div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Upload an Excel file</label>
+            <p class="text-xs text-gray-400 mb-2">
+                The first row is treated as a header. Tell us which column has the contacts — a
+                column letter (e.g. <code>B</code>), a column number, or the exact header text.
+            </p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <input type="file" id="ExcelFile" name="ExcelFile" accept=".xlsx"
+                       class="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:bg-indigo-50 file:text-indigo-700 file:text-sm file:font-medium" />
+                <input type="text" name="ExcelColumn" placeholder="Column letter, number, or header (e.g. B or Email)"
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all text-sm" />
+            </div>
+        </div>
+
+        <!-- Review results — hidden until "Review contacts" is clicked -->
+        <div id="reviewBox" class="review-box hidden">
+            <div class="review-row">
+                <span class="review-label">Pasted contacts</span>
+                <span class="review-value" id="reviewOriginalCount">0</span>
+            </div>
+            <div class="review-row">
+                <span class="review-label">Duplicates removed</span>
+                <span class="review-value review-value--removed" id="reviewDuplicateCount">0</span>
+            </div>
+            <div class="review-row">
+                <span class="review-label">Unique contacts</span>
+                <span class="review-value review-value--final" id="reviewFinalCount">0</span>
+            </div>
+            <p id="reviewExcelNote" class="review-excel-note hidden">
+                An Excel file is also attached — its contacts will be merged in and deduplicated when you save, but can't be previewed here.
+            </p>
+        </div>
+
+        <div class="flex items-center gap-3 pt-2 border-t border-gray-100">
+            <button type="button" id="reviewBtn" class="campaign-btn campaign-btn--primary">Review contacts</button>
+            <button type="submit" id="saveBtn" class="campaign-btn campaign-btn--primary hidden">Save campaign</button>
+            <a href="/Campaigns/Index" class="campaign-btn campaign-btn--ghost">Cancel</a>
+        </div>
+    </form>
+</div>
+
+<style>
+    .campaign-back {
+        display: inline-flex; align-items: center; gap: 6px;
+        font-size: 13px; font-weight: 500; color: #6B7280; text-decoration: none;
+        transition: color .15s ease;
+    }
+    .campaign-back:hover { color: #4338CA; }
+
+    .campaign-error-box {
+        background: #FEF2F2; border: 1px solid #FECACA; color: #B91C1C;
+        border-radius: 8px; padding: 10px 14px; margin-bottom: 16px; font-size: 13px;
+    }
+    .campaign-error-box p { margin: 2px 0; }
+
+    .campaign-btn {
+        padding: 9px 18px; border-radius: 8px; font-size: 14px; font-weight: 600;
+        text-decoration: none; cursor: pointer; border: none; transition: background .15s ease;
+    }
+    .campaign-btn--primary { background: #4338CA; color: #fff; }
+    .campaign-btn--primary:hover { background: #6D28D9; }
+    .campaign-btn--ghost { background: transparent; color: #374151; border: 1px solid #E5E7EB; }
+    .campaign-btn--ghost:hover { background: #F9FAFB; }
+    .hidden { display: none; }
+
+    .campaign-type-group { display: flex; gap: 10px; }
+    .campaign-type-option {
+        flex: 1; display: flex; align-items: flex-start; gap: 8px;
+        border: 1px solid #E5E7EB; border-radius: 8px; padding: 10px 12px; cursor: pointer;
+        transition: border-color .15s ease, background .15s ease;
+    }
+    .campaign-type-option:has(input:checked) { border-color: #818CF8; background: #EEF2FF; }
+    .campaign-type-option input { margin-top: 3px; accent-color: #4338CA; }
+    .campaign-type-label { display: flex; flex-direction: column; }
+    .campaign-type-title { font-size: 13px; font-weight: 600; color: #111827; }
+    .campaign-type-sub { font-size: 11px; color: #6B7280; }
+
+    .campaign-divider {
+        display: flex; align-items: center; text-align: center; color: #9CA3AF;
+        font-size: 11px; text-transform: uppercase; letter-spacing: .3px;
+    }
+    .campaign-divider::before, .campaign-divider::after {
+        content: ''; flex: 1; height: 1px; background: #E5E7EB;
+    }
+    .campaign-divider span { padding: 0 10px; }
+
+    .review-box {
+        background: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 10px;
+        padding: 14px 16px;
+    }
+    .review-row {
+        display: flex; align-items: center; justify-content: space-between;
+        font-size: 13px; padding: 4px 0;
+    }
+    .review-label { color: #6B7280; }
+    .review-value { font-weight: 700; color: #111827; }
+    .review-value--removed { color: #B45309; }
+    .review-value--final { color: #059669; }
+    .review-excel-note {
+        margin-top: 10px; padding-top: 10px; border-top: 1px solid #E5E7EB;
+        font-size: 12px; color: #6B7280;
+    }
+</style>
+
+<script>
+    (function () {
+        var contactsText = document.getElementById('ContactsText');
+        var excelFile = document.getElementById('ExcelFile');
+        var reviewBtn = document.getElementById('reviewBtn');
+        var saveBtn = document.getElementById('saveBtn');
+        var reviewBox = document.getElementById('reviewBox');
+        var originalCountEl = document.getElementById('reviewOriginalCount');
+        var duplicateCountEl = document.getElementById('reviewDuplicateCount');
+        var finalCountEl = document.getElementById('reviewFinalCount');
+        var excelNoteEl = document.getElementById('reviewExcelNote');
+
+        function parseLines(text) {
+            return text
+                .split(/\r\n|\r|\n/)
+                .map(function (line) { return line.trim(); })
+                .filter(function (line) { return line.length > 0; });
+        }
+
+        // Case-insensitive de-dupe, preserving first-seen order — mirrors
+        // the server-side logic in SaveCampaign so what's previewed here
+        // matches what actually gets saved.
+        function dedupe(lines) {
+            var seen = new Set();
+            var result = [];
+            lines.forEach(function (line) {
+                var key = line.toLowerCase();
+                if (!seen.has(key)) {
+                    seen.add(key);
+                    result.push(line);
+                }
+            });
+            return result;
+        }
+
+        function runReview() {
+            var lines = parseLines(contactsText.value);
+            var deduped = dedupe(lines);
+
+            originalCountEl.textContent = lines.length;
+            duplicateCountEl.textContent = lines.length - deduped.length;
+            finalCountEl.textContent = deduped.length;
+
+            // Write the deduped list back into the textarea so what the user
+            // sees matches exactly what will be submitted.
+            contactsText.value = deduped.join('\n');
+
+            var hasExcel = excelFile && excelFile.files && excelFile.files.length > 0;
+            excelNoteEl.classList.toggle('hidden', !hasExcel);
+
+            reviewBox.classList.remove('hidden');
+            reviewBtn.classList.add('hidden');
+            saveBtn.classList.remove('hidden');
+            saveBtn.textContent = deduped.length > 0
+                ? 'Save ' + deduped.length + ' unique contact' + (deduped.length === 1 ? '' : 's')
+                : 'Save campaign';
+        }
+
+        function resetReview() {
+            reviewBox.classList.add('hidden');
+            saveBtn.classList.add('hidden');
+            reviewBtn.classList.remove('hidden');
+        }
+
+        reviewBtn.addEventListener('click', runReview);
+
+        // If they edit the pasted contacts or swap the file after reviewing,
+        // the counts are stale — force another review before they can save.
+        contactsText.addEventListener('input', resetReview);
+        if (excelFile) excelFile.addEventListener('change', resetReview);
+    })();
+</script>

@@ -1,0 +1,247 @@
+﻿@using System.Linq
+@model BulkMessaging.Models.CampaignMessagesViewModel
+@{
+    ViewData["Title"] = Model?.Campaign?.Name ?? "Campaign";
+    var campaign = Model?.Campaign;
+    var isEmail = campaign?.Type == BulkMessaging.Models.CampaignType.Email;
+    var encodedName = Uri.EscapeDataString(campaign?.Name ?? "");
+    var isCleaning = campaign?.ContactCleanStatus == BulkMessaging.Models.ContactCleanStatus.Cleaning;
+}
+
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="mb-6">
+        <a href="/Campaigns/Index" class="campaign-back">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+            </svg>
+            Campaigns
+        </a>
+
+        <div class="flex items-start justify-between mt-3 gap-4">
+            <div>
+                <div class="flex items-center gap-2">
+                    <h1 class="text-2xl font-bold text-gray-900" style="font-family: 'Space Grotesk', sans-serif;">@campaign?.Name</h1>
+                    <span class="campaign-badge @(isEmail ? "campaign-badge--email" : "campaign-badge--sms")">
+                        @(isEmail ? "Email" : "SMS")
+                    </span>
+                </div>
+                <p class="text-gray-500 mt-1 text-sm">
+                    @campaign?.Contacts.Count contact@(campaign?.Contacts.Count == 1 ? "" : "s")
+                </p>
+            </div>
+
+            <a href="/Campaigns/@encodedName/Contacts" class="campaign-btn campaign-btn--ghost">
+                Contact List
+            </a>
+        </div>
+    </div>
+
+    <div class="flex items-center justify-between mb-4">
+        <h2 class="text-sm font-semibold text-gray-900">Messages</h2>
+        @if (isCleaning)
+        {
+            <span class="campaigns-cta campaigns-cta--disabled" title="Contacts are still being cleaned — please wait.">
+                <svg class="clean-status-spinner" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <circle cx="12" cy="12" r="9" stroke-opacity="0.25" />
+                    <path stroke-linecap="round" d="M21 12a9 9 0 00-9-9" />
+                </svg>
+                <text>Cleaning contacts…</text>
+            </span>
+        }
+        else
+        {
+            <a href="/Campaigns/@encodedName/Index/new-message" class="campaigns-cta">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+                Create message
+            </a>
+        }
+    </div>
+
+    @if (Model != null && Model.Messages.Count > 0)
+    {
+        <div class="space-y-3">
+            @foreach (var message in Model.Messages)
+            {
+               var isCancelable = message.Status == BulkMessaging.Models.MessageStatus.Scheduled
+                                   || message.Status == BulkMessaging.Models.MessageStatus.Sending;
+
+               var successCount = message.SendResults.Count(r => r.Success);
+               var failedCount = message.SendResults.Count - successCount;
+               var hasResults = message.SendResults.Count > 0;
+
+               <div class="message-card">
+                    <a href="/Campaigns/@encodedName/Index/message/@message.Id" class="message-card-info">
+                        <div class="flex items-center gap-2">
+                            @if (isEmail)
+                            {
+                                <p class="message-card-title">@message.Subject</p>
+                            }
+                            else
+                            {
+                                <p class="message-card-title">@message.SmsBody</p>
+                            }
+                            <span class="message-status message-status--@message.Status.ToString().ToLower()">@message.Status</span>
+                        </div>
+                        @if (message.Status == BulkMessaging.Models.MessageStatus.Scheduled)
+                        {
+                            <p class="message-card-meta">Scheduled for @message.ScheduledAt?.ToString("MMM d, yyyy h:mm tt")</p>
+                        }
+                        else if (message.Status == BulkMessaging.Models.MessageStatus.Sending)
+                        {
+                            <p class="message-card-meta">Sending now…</p>
+                        }
+                        else if (message.Status == BulkMessaging.Models.MessageStatus.Sent)
+                        {
+                            <p class="message-card-meta">Sent @message.SentAt?.ToLocalTime().ToString("MMM d, yyyy h:mm tt")</p>
+                        }
+                        else if (message.Status == BulkMessaging.Models.MessageStatus.Canceled)
+                        {
+                            <p class="message-card-meta">Canceled @message.UpdatedAt.ToLocalTime().ToString("MMM d, yyyy h:mm tt")</p>
+                        }
+                        else
+                        {
+                            <p class="message-card-meta">Created @message.CreatedAt.ToLocalTime().ToString("MMM d, yyyy h:mm tt")</p>
+                        }
+                        @if (hasResults)
+                        {
+                            <p class="message-card-results">
+                                <span class="result-chip result-chip--success">@successCount sent</span>
+                                @if (failedCount > 0)
+                                {
+                                    <span class="result-chip result-chip--failed">@failedCount failed</span>
+                                }
+                            </p>
+                        }
+                    </a>
+                    <div class="message-card-actions">
+                        <a href="/Campaigns/@encodedName/Index/message/@message.Id" class="campaign-card-btn campaign-card-btn--view" title="View message">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M1.5 12S5 5 12 5s10.5 7 10.5 7-3.5 7-10.5 7S1.5 12 1.5 12z" />
+                                <circle cx="12" cy="12" r="3" />
+                            </svg>
+                        </a>
+                        @if (isCancelable)
+                        {
+                            <form method="post" action="/Campaigns/@encodedName/Index/cancel-message"
+                                  onsubmit="return confirm('Cancel this message? Contacts not yet sent to will be skipped.');">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="messageId" value="@message.Id" />
+                                <button type="submit" class="campaign-card-btn campaign-card-btn--cancel">Cancel</button>
+                            </form>
+                        }
+                        <form method="post" action="/Campaigns/@encodedName/Index/delete-message"
+                              onsubmit="return confirm('Delete this message?');">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="messageId" value="@message.Id" />
+                            <button type="submit" class="campaign-card-btn campaign-card-btn--danger">Delete</button>
+                        </form>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="bg-white rounded-xl border border-gray-200 p-12 text-center">
+            <h2 class="text-base font-semibold text-gray-900 mb-1">No messages yet</h2>
+            <p class="text-sm text-gray-500 max-w-sm mx-auto">Create a message to send to this campaign's contacts.</p>
+        </div>
+    }
+</div>
+
+<style>
+    .campaign-back {
+        display: inline-flex; align-items: center; gap: 6px;
+        font-size: 13px; font-weight: 500; color: #6B7280; text-decoration: none;
+        transition: color .15s ease;
+    }
+    .campaign-back:hover { color: #4338CA; }
+
+    .campaign-badge {
+        flex-shrink: 0; font-size: 10px; font-weight: 700; text-transform: uppercase;
+        letter-spacing: .3px; padding: 3px 8px; border-radius: 999px;
+    }
+    .campaign-badge--email { background: #EEF2FF; color: #4338CA; }
+    .campaign-badge--sms { background: #ECFDF5; color: #059669; }
+
+    .campaigns-cta {
+        display: inline-flex; align-items: center; gap: 8px;
+        padding: 9px 16px; border-radius: 8px;
+        background: var(--brand, #4338CA); color: #fff;
+        font-size: 14px; font-weight: 600; text-decoration: none;
+        transition: background .15s ease;
+    }
+    .campaigns-cta:hover { background: var(--brand-2, #6D28D9); }
+    .campaigns-cta--disabled {
+        background: #E5E7EB; color: #9CA3AF; cursor: not-allowed;
+        pointer-events: none;
+    }
+    .campaigns-cta--disabled:hover { background: #E5E7EB; }
+    .clean-status-spinner { animation: clean-spin 0.8s linear infinite; }
+    @@keyframes clean-spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+
+    .campaign-btn {
+        padding: 9px 18px; border-radius: 8px; font-size: 14px; font-weight: 600;
+        text-decoration: none; cursor: pointer; border: none; transition: background .15s ease;
+    }
+    .campaign-btn--ghost { background: transparent; color: #374151; border: 1px solid #E5E7EB; }
+    .campaign-btn--ghost:hover { background: #F9FAFB; }
+
+    .message-card {
+        background: #fff; border: 1px solid #E5E7EB; border-radius: 12px;
+        padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px;
+        transition: border-color .15s ease, box-shadow .15s ease;
+    }
+    .message-card:hover { border-color: #C7D2FE; box-shadow: 0 1px 3px rgba(0,0,0,.04); }
+
+    .message-card-info {
+        display: block; flex: 1; min-width: 0;
+        text-decoration: none; color: inherit; cursor: pointer;
+    }
+    .message-card-title {
+        font-size: 14px; font-weight: 600; color: #111827; margin: 0;
+        overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 480px;
+    }
+    .message-card-meta { font-size: 12px; color: #6B7280; margin: 2px 0 0; }
+
+    .message-card-results { margin: 4px 0 0; display: flex; gap: 6px; flex-wrap: wrap; }
+    .result-chip {
+        font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px;
+        display: inline-flex; align-items: center;
+    }
+    .result-chip--success { background: #ECFDF5; color: #059669; }
+    .result-chip--failed { background: #FEF2F2; color: #DC2626; }
+
+    .message-card-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+
+    .campaign-card-btn {
+        padding: 6px 12px; border-radius: 6px;
+        font-size: 12px; font-weight: 600; cursor: pointer;
+        border: 1px solid transparent; transition: background .15s ease;
+        display: inline-flex; align-items: center; justify-content: center;
+    }
+    .campaign-card-btn--view {
+        background: #F9FAFB; color: #4338CA; border-color: #E5E7EB; padding: 6px 8px;
+        text-decoration: none;
+    }
+    .campaign-card-btn--view:hover { background: #EEF2FF; border-color: #C7D2FE; }
+    .campaign-card-btn--cancel { background: #FFFBEB; color: #B45309; border-color: #FDE68A; }
+    .campaign-card-btn--cancel:hover { background: #FEF3C7; }
+    .campaign-card-btn--danger { background: #FEF2F2; color: #DC2626; border-color: #FECACA; }
+    .campaign-card-btn--danger:hover { background: #FEE2E2; }
+
+    .message-status {
+        font-size: 10px; font-weight: 700; text-transform: uppercase;
+        letter-spacing: .3px; padding: 3px 8px; border-radius: 999px; flex-shrink: 0;
+    }
+    .message-status--draft { background: #F3F4F6; color: #6B7280; }
+    .message-status--scheduled { background: #FEF3C7; color: #B45309; }
+    .message-status--sending { background: #FEF3C7; color: #B45309; }
+    .message-status--sent { background: #ECFDF5; color: #059669; }
+    .message-status--canceled { background: #F3F4F6; color: #6B7280; }
+</style>

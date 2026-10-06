@@ -1,0 +1,207 @@
+﻿@model BulkMessaging.Models.SendingResultsViewModel
+@{
+    ViewData["Title"] = "Sending Results";
+    var campaign = Model.Campaign;
+    var message = Model.Message;
+    var encodedName = Uri.EscapeDataString(campaign.Name);
+    var successCount = Model.ContactStatuses.Count(c => c.Success == true);
+    var failedCount = Model.ContactStatuses.Count(c => c.Success == false);
+    var pendingCount = Model.ContactStatuses.Count(c => c.Success == null);
+}
+
+<div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="mb-6">
+        <a href="/Campaigns/@encodedName/Index/message/@message.Id" class="campaign-back">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+            </svg>
+            Back to message
+        </a>
+
+        <h1 class="text-2xl font-bold text-gray-900 mt-3" style="font-family: 'Space Grotesk', sans-serif;">Sending Results</h1>
+        <p class="text-gray-500 mt-1 text-sm">@campaign.Contacts.Count contact@(campaign.Contacts.Count == 1 ? "" : "s") total</p>
+
+        <div class="results-summary">
+            <span class="result-chip result-chip--success">@successCount sent</span>
+            @if (failedCount > 0)
+            {
+                <span class="result-chip result-chip--failed">@failedCount failed</span>
+            }
+            @if (pendingCount > 0)
+            {
+                <span class="result-chip result-chip--pending">@pendingCount pending</span>
+            }
+        </div>
+
+        <div class="filter-bar" role="group" aria-label="Filter by status">
+            <button type="button" class="filter-btn active" data-filter="all">
+                All <span class="filter-count">@Model.ContactStatuses.Count</span>
+            </button>
+            <button type="button" class="filter-btn" data-filter="sent">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+                Sent <span class="filter-count">@successCount</span>
+            </button>
+            <button type="button" class="filter-btn" data-filter="failed">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 6l12 12M18 6L6 18" />
+                </svg>
+                Failed <span class="filter-count">@failedCount</span>
+            </button>
+            @if (pendingCount > 0)
+            {
+                <button type="button" class="filter-btn" data-filter="pending">
+                    Pending <span class="filter-count">@pendingCount</span>
+                </button>
+            }
+        </div>
+    </div>
+
+    <div class="results-table-wrap">
+        <table class="results-table">
+            <thead>
+                <tr>
+                    <th>Contact</th>
+                    <th>Status</th>
+                    <th>Detail</th>
+                    <th>Time</th>
+                </tr>
+            </thead>
+            <tbody id="resultsBody">
+                @foreach (var status in Model.ContactStatuses)
+                {
+                    var rowFilter = status.Success == true ? "sent" : status.Success == false ? "failed" : "pending";
+                    <tr data-status="@rowFilter">
+                        <td class="results-contact">@status.Contact</td>
+                        <td>
+                            @if (status.Success == true)
+                            {
+                                <span class="message-status message-status--sent">
+                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                    Sent
+                                </span>
+                            }
+                            else if (status.Success == false)
+                            {
+                                <span class="message-status message-status--failed">
+                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 6l12 12M18 6L6 18" />
+                                    </svg>
+                                    Failed
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="message-status message-status--pending">Pending</span>
+                            }
+                        </td>
+                        <td class="results-detail">@(status.Message ?? "—")</td>
+                        <td class="results-time">@(status.Timestamp?.ToLocalTime().ToString("MMM d, h:mm:ss tt") ?? "—")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        <div id="noResultsRow" class="no-results hidden">No contacts match this filter.</div>
+    </div>
+</div>
+
+<script>
+    (function () {
+        var buttons = document.querySelectorAll('.filter-btn');
+        var rows = document.querySelectorAll('#resultsBody tr');
+        var noResults = document.getElementById('noResultsRow');
+
+        buttons.forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                buttons.forEach(function (b) { b.classList.remove('active'); });
+                btn.classList.add('active');
+
+                var filter = btn.getAttribute('data-filter');
+                var visibleCount = 0;
+
+                rows.forEach(function (row) {
+                    var matches = filter === 'all' || row.getAttribute('data-status') === filter;
+                    row.classList.toggle('hidden', !matches);
+                    if (matches) visibleCount++;
+                });
+
+                noResults.classList.toggle('hidden', visibleCount > 0);
+            });
+        });
+    })();
+</script>
+
+<style>
+    .campaign-back {
+        display: inline-flex; align-items: center; gap: 6px;
+        font-size: 13px; font-weight: 500; color: #6B7280; text-decoration: none;
+        transition: color .15s ease;
+    }
+    .campaign-back:hover { color: #4338CA; }
+
+    .results-summary { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+    .result-chip {
+        font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 999px;
+        display: inline-flex; align-items: center;
+    }
+    .result-chip--success { background: #ECFDF5; color: #059669; }
+    .result-chip--failed { background: #FEF2F2; color: #DC2626; }
+    .result-chip--pending { background: #F3F4F6; color: #6B7280; }
+
+    .filter-bar {
+        display: inline-flex; gap: 2px; margin-top: 14px;
+        border: 1px solid #E5E7EB; border-radius: 10px; padding: 3px; background: #F9FAFB;
+    }
+    .filter-btn {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 7px 14px; border: none; border-radius: 7px; background: transparent;
+        color: #6B7280; font-size: 13px; font-weight: 600; cursor: pointer;
+        transition: background .15s ease, color .15s ease, box-shadow .15s ease;
+    }
+    .filter-btn svg { flex-shrink: 0; }
+    .filter-btn:hover:not(.active) { background: #F3F4F6; color: #374151; }
+    .filter-btn.active {
+        background: #fff; color: #4338CA;
+        box-shadow: 0 1px 2px rgba(0,0,0,.06), 0 0 0 1px #E5E7EB;
+    }
+    .filter-count {
+        font-size: 11px; font-weight: 700; color: #9CA3AF; background: #F3F4F6;
+        border-radius: 999px; padding: 1px 6px; min-width: 18px; text-align: center;
+    }
+    .filter-btn.active .filter-count { color: #4338CA; background: #EEF2FF; }
+
+    .results-table-wrap {
+        background: #fff; border: 1px solid #E5E7EB; border-radius: 12px; overflow: hidden;
+    }
+    .results-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .results-table th {
+        text-align: left; font-size: 11px; font-weight: 700; text-transform: uppercase;
+        letter-spacing: .3px; color: #9CA3AF; padding: 10px 14px; background: #F9FAFB;
+        border-bottom: 1px solid #E5E7EB;
+    }
+    .results-table td {
+        padding: 10px 14px; border-bottom: 1px solid #F3F4F6; color: #111827; vertical-align: top;
+    }
+    .results-table tr:last-child td { border-bottom: none; }
+    .results-table tr.hidden { display: none; }
+    .results-contact { font-weight: 600; word-break: break-word; }
+    .results-detail { color: #6B7280; word-break: break-word; }
+    .results-time { color: #9CA3AF; white-space: nowrap; }
+
+    .no-results {
+        padding: 24px; text-align: center; font-size: 13px; color: #9CA3AF;
+    }
+    .no-results.hidden { display: none; }
+
+    .message-status {
+        font-size: 10px; font-weight: 700; text-transform: uppercase;
+        letter-spacing: .3px; padding: 3px 8px; border-radius: 999px; flex-shrink: 0;
+        display: inline-flex; align-items: center; gap: 4px;
+    }
+    .message-status--sent { background: #ECFDF5; color: #059669; }
+    .message-status--failed { background: #FEF2F2; color: #DC2626; }
+    .message-status--pending { background: #F3F4F6; color: #6B7280; }
+</style>
