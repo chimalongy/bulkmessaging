@@ -214,5 +214,14 @@
     "action": "Login Success",
     "details": "User \u0027admin\u0027 logged in",
     "ipAddress": "::1"
+  },
+  {
+    "id": "d6d8f9ca-414d-4ba9-b375-cd74c7fc7d7b",
+    "timestamp": "2026-10-06T11:31:35.3087161Z",
+    "username": "Admin",
+    "role": "Unknown",
+    "action": "Login Failed",
+    "details": "Failed login attempt for \u0027Admin\u0027",
+    "ipAddress": "::1"
   }
 ]
